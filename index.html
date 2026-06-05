@@ -1,0 +1,3102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRINETRA — Factory Production Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf6ef; --cream-2:#f3ecde; --paper:#fffdf8;
+  --ink:#1a1510; --ink-soft:#5a4a38; --ink-mute:#8a7a66;
+  --gold:#b8935a; --gold-dark:#8a6a3a; --gold-soft:#e6d4ad;
+  --line:#e6dcc9; --green:#4a7a4a; --green-soft:#d9ead7;
+  --red:#a64a3a; --red-soft:#f3dcd5; --amber:#c98a2a; --amber-soft:#f7e6c4;
+  --blue:#2a6a9a; --blue-soft:#d5e8f5;
+  --shadow-1:0 1px 2px rgba(46,36,24,.04),0 2px 8px rgba(46,36,24,.06);
+  --shadow-2:0 4px 12px rgba(46,36,24,.08),0 12px 32px rgba(46,36,24,.10);
+  --radius:12px;
+  /* aliases */
+  --bg:var(--cream); --dark:var(--ink); --pink:var(--gold);
+  --yellow:var(--amber); --yellow-light:var(--amber-soft);
+  --green-light:var(--green-soft); --blue-light:var(--blue-soft);
+  --card:var(--paper); --border:var(--line); --text2:var(--ink-mute);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.5;}
+h1,h2,h3,h4{font-family:'Playfair Display',Georgia,serif;font-weight:600;color:var(--ink);}
+
+/* ── LOGIN SCREEN ── */
+.login-screen{position:fixed;inset:0;background:var(--cream);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-screen.hidden{display:none;}
+.login-box{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:40px;width:100%;max-width:400px;box-shadow:var(--shadow-2);text-align:center;}
+.login-logo{font-family:'Archivo Black','Inter',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.02em;color:var(--ink);text-transform:uppercase;margin-bottom:4px;}
+.login-logo span{color:var(--gold);}
+.login-subtitle{font-size:11px;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;margin-bottom:28px;letter-spacing:.04em;}
+.login-role-tabs{display:flex;gap:8px;margin-bottom:24px;background:var(--cream-2);border-radius:100px;padding:4px;}
+.login-role-tab{flex:1;padding:8px;border:none;border-radius:100px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--ink-mute);transition:all .2s;}
+.login-role-tab.active{background:var(--paper);color:var(--ink);box-shadow:var(--shadow-1);}
+.login-field{text-align:left;margin-bottom:16px;}
+.login-field label{font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px;}
+.login-field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:14px;background:var(--cream-2);color:var(--ink);outline:none;transition:border .2s;}
+.login-field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.15);}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:white;border:none;border-radius:100px;padding:13px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 4px 14px rgba(184,147,90,.35);transition:all .2s;margin-top:4px;}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(184,147,90,.45);}
+.login-error{background:var(--red-soft);color:var(--red);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;margin-top:12px;display:none;}
+
+/* ── HEADER ── */
+.header{background:var(--paper);padding:0 28px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--line);box-shadow:var(--shadow-1);}
+.header-left{display:flex;align-items:center;gap:14px;}
+.header-logo{font-family:'Archivo Black','Inter',sans-serif;font-size:18px;font-weight:900;letter-spacing:-0.02em;color:var(--ink);text-transform:uppercase;}
+.header-logo span{color:var(--gold);}
+.header-title{font-size:12px;font-weight:500;color:var(--ink-mute);font-family:'JetBrains Mono',monospace;letter-spacing:.04em;border-left:1px solid var(--line);padding-left:14px;}
+.header-right{display:flex;align-items:center;gap:8px;}
+.role-badge{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:5px 12px;border-radius:100px;border:1px solid var(--line);background:var(--cream-2);color:var(--ink-soft);letter-spacing:.06em;text-transform:uppercase;}
+.sync-btn{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:white;border:none;padding:8px 18px;border-radius:100px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:.04em;transition:all .2s;}
+.sync-btn:hover{transform:translateY(-1px);}
+
+/* ── BODY LAYOUT ── */
+.body-wrap{display:flex;min-height:calc(100vh - 62px);}
+
+/* ── SIDEBAR ── */
+.sidebar{width:210px;min-width:210px;background:var(--paper);border-right:1px solid var(--line);position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;overflow-x:hidden;padding:16px 0;box-shadow:var(--shadow-1);flex-shrink:0;}
+.sb-section{font-size:9px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.12em;padding:14px 18px 6px;font-family:'JetBrains Mono',monospace;}
+.sb-divider{height:1px;background:var(--line);margin:8px 0;}
+.nav-tab{display:flex;align-items:center;gap:10px;padding:11px 18px;background:transparent;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--ink-mute);width:100%;text-align:left;border-left:3px solid transparent;transition:all .15s ease;white-space:nowrap;}
+.nav-tab:hover{color:var(--ink);background:var(--cream);}
+.nav-tab.active{color:var(--ink);background:var(--gold-soft);border-left-color:var(--gold);font-weight:700;}
+.nav-tab.locked{opacity:.45;cursor:not-allowed;}
+.tab-icon{font-size:15px;flex-shrink:0;width:22px;text-align:center;}
+.tab-label{flex:1;}
+.lock-icon{font-size:10px;color:var(--ink-mute);}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;overflow-x:auto;}
+.content{padding:24px 28px 40px;max-width:980px;margin:0 auto;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--paper);border-radius:var(--radius);border:1px solid var(--line);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-1);}
+.card:hover{box-shadow:var(--shadow-2);}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:16px;font-family:'Inter',sans-serif;}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;font-family:'Inter',sans-serif;}
+.form-group input,.form-group select{border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'Inter',sans-serif;font-size:13px;background:var(--paper);color:var(--ink);outline:none;transition:border .2s;box-shadow:0 1px 3px rgba(46,36,24,.04);}
+.form-group input:focus,.form-group select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,147,90,.15);}
+.form-full{grid-column:1/-1;}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:100px;padding:10px 22px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;letter-spacing:.04em;text-transform:uppercase;}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:white;box-shadow:0 2px 8px rgba(184,147,90,.3);}
+.btn-primary:hover{transform:translateY(-1px);}
+.btn-success{background:var(--green);color:white;}
+.btn-success:hover{background:#3a6a3a;transform:translateY(-1px);}
+.btn-danger{background:var(--red-soft);color:var(--red);border:1px solid var(--red);}
+.btn-danger:hover{background:var(--red);color:white;}
+.btn-outline{background:var(--cream-2);color:var(--ink-soft);border:1px solid var(--line);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold-dark);background:var(--gold-soft);}
+.btn-sm{padding:6px 14px;font-size:11px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:.04em;}
+.badge-gold{background:var(--gold-soft);color:var(--gold-dark);}
+.badge-green{background:var(--green-soft);color:var(--green);}
+.badge-yellow{background:var(--amber-soft);color:var(--amber);}
+.badge-blue{background:var(--blue-soft);color:var(--blue);}
+.badge-red{background:var(--red-soft);color:var(--red);}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--cream-2);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-mute);border-bottom:1px solid var(--line);white-space:nowrap;font-family:'Inter',sans-serif;}
+td{padding:11px 16px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink-soft);font-family:'Inter',sans-serif;}
+tr:hover td{background:var(--cream-2);}
+tr.pending-row td{background:#fff8ec;}
+
+/* ── SCANNER ── */
+.scanner-box{border:2px dashed var(--line);border-radius:var(--radius);padding:24px;text-align:center;background:var(--cream-2);}
+.scanner-input{font-size:16px;padding:14px 20px;width:100%;border:2px solid var(--gold);border-radius:10px;font-family:'JetBrains Mono',monospace;font-weight:600;text-align:center;letter-spacing:2px;background:var(--paper);color:var(--ink);outline:none;transition:box-shadow .2s;}
+.scanner-input:focus{box-shadow:0 0 0 4px rgba(184,147,90,.2);}
+.scanner-input::placeholder{color:var(--ink-mute);font-size:13px;letter-spacing:1px;}
+.scan-result{padding:14px;border-radius:10px;margin-top:12px;font-weight:600;font-size:13px;display:none;font-family:'Inter',sans-serif;}
+.scan-result.success{background:var(--green-soft);color:var(--green);display:block;border:1px solid var(--green);}
+.scan-result.error{background:var(--red-soft);color:var(--red);display:block;border:1px solid var(--red);}
+.scan-result.warn{background:var(--amber-soft);color:var(--amber);display:block;border:1px solid var(--amber);}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px;}
+.stat-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-1);transition:box-shadow .2s,transform .15s;}
+.stat-card:hover{box-shadow:var(--shadow-2);transform:translateY(-2px);}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-mute);margin-bottom:8px;font-family:'Inter',sans-serif;}
+.stat-value{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--ink);letter-spacing:-.5px;}
+.stat-value.c-gold{color:var(--gold);}
+.stat-value.c-green{color:var(--green);}
+.stat-value.c-amber{color:var(--amber);}
+.stat-value.c-blue{color:var(--blue);}
+.stat-value.c-red{color:var(--red);}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:var(--cream);padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;display:none;z-index:9999;border-left:4px solid var(--gold);box-shadow:var(--shadow-2);font-family:'Inter',sans-serif;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,21,16,.55);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--paper);border-radius:16px;padding:28px;max-width:700px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-2);border:1px solid var(--line);}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:var(--ink);font-family:'Playfair Display',serif;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+/* ── WAGES ── */
+.wages-card{background:linear-gradient(135deg,var(--ink) 0%,#2d2318 100%);color:var(--cream);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:var(--shadow-2);}
+.wages-card .w-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-mute);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+.wages-card .w-value{font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--gold);letter-spacing:-1px;}
+
+/* ── SETTINGS ── */
+.settings-section{margin-bottom:24px;}
+.settings-section h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-mute);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;}
+
+/* ── QR PRINT ── */
+.qr-print-grid{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+.qr-item{border:1px solid var(--line);border-radius:4px;padding:4px 6px;text-align:center;background:white;width:60mm;height:40mm;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;}
+.qr-item svg{width:56mm;height:28mm;}
+.qr-item .qr-label{font-size:8px;font-weight:700;margin-top:2px;font-family:'JetBrains Mono',monospace;word-break:break-all;}
+
+.empty-state{text-align:center;padding:40px;color:var(--ink-mute);font-size:13px;font-family:'Inter',sans-serif;}
+
+/* filter inputs */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar input,.filter-bar select{border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;background:var(--paper);color:var(--ink);outline:none;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--gold);}
+
+/* wage slip */
+.slip-wrap{background:white;border:1px solid #ccc;border-radius:8px;padding:20px;font-family:'Inter',sans-serif;}
+.slip-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:16px;}
+
+@media print{
+  .header,.sidebar,.modal-actions,button,.stats-row{display:none!important;}
+  .body-wrap{display:block!important;}
+  .qr-print-grid{display:flex;flex-direction:column;align-items:flex-start;gap:4mm;padding:4mm;}
+  .qr-item{width:60mm!important;height:40mm!important;page-break-inside:avoid;border:.5px solid #999!important;overflow:hidden!important;}
+  .slip-wrap{border:none!important;}
+}
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .sidebar{width:180px;min-width:180px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">TRINE<span>TRA</span></div>
+    <div class="login-subtitle">Factory Production Tracker</div>
+    <div class="login-role-tabs">
+      <button class="login-role-tab active" onclick="setLoginRole('factory')" id="role-tab-factory">🏭 Factory</button>
+      <button class="login-role-tab" onclick="setLoginRole('office')" id="role-tab-office">📦 Office</button>
+    </div>
+    <div class="login-field">
+      <label id="login-role-label">Factory Password</label>
+      <input type="password" id="login-password" placeholder="Enter password..." onkeydown="if(event.key==='Enter')doLogin()" autofocus />
+    </div>
+    <button class="login-btn" onclick="doLogin()">🔓 Login</button>
+    <div class="login-error" id="login-error">❌ Incorrect password!</div>
+  </div>
+</div>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<div class="header">
+  <div class="header-left">
+    <span class="header-logo">TRINE<span>TRA</span></span>
+    <span class="header-title">Factory Production Tracker</span>
+  </div>
+  <div class="header-right">
+    <span class="role-badge" id="header-role-badge">—</span>
+    <span id="firebase-status" style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;padding:5px 12px;border-radius:100px;border:1px solid var(--line);background:var(--cream-2);color:var(--ink-mute);letter-spacing:.04em;">⬡ OFFLINE</span>
+    <button class="btn btn-outline btn-sm" onclick="pullFromSupabase(false)" style="color:var(--blue);border-color:var(--blue);">↓ Pull</button>
+    <button class="btn btn-outline btn-sm" onclick="openSettings()">⚙ Settings</button>
+    <button class="btn btn-outline btn-sm" onclick="backupData()">↓ Backup</button>
+    <label class="btn btn-outline btn-sm" style="cursor:pointer;" title="Restore backup">↑ Restore<input type="file" accept=".json" onchange="restoreData(event)" style="display:none;"></label>
+    <button class="sync-btn" onclick="syncToSheets()">↑ Push to Sheet</button>
+    <button class="btn btn-outline btn-sm" onclick="pullFromSheets()" style="color:var(--blue);border-color:var(--blue);">↓ Pull from Sheet</button>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()" style="color:var(--red);">⏻ Logout</button>
+  </div>
+</div>
+
+<!-- ══════════════ BODY ══════════════ -->
+<div class="body-wrap">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-section">Production</div>
+  <div class="nav-tab active" id="nav-production" onclick="switchTab('production')">
+    <span class="tab-icon">✦</span><span class="tab-label">Production Entry</span>
+  </div>
+  <div class="nav-tab" id="nav-factory" onclick="switchTab('factory')">
+    <span class="tab-icon">🏭</span><span class="tab-label">Factory Scan</span>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">Office</div>
+  <div class="nav-tab" id="nav-office" onclick="switchTab('office')">
+    <span class="tab-icon">📦</span><span class="tab-label">Office Scan</span>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">Quality</div>
+  <div class="nav-tab" id="nav-qc" onclick="switchTab('qc')">
+    <span class="tab-icon">✅</span><span class="tab-label">Quality Check</span>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">Dispatch & Returns</div>
+  <div class="nav-tab" id="nav-dispatch" onclick="switchTab('dispatch')">
+    <span class="tab-icon">🚀</span><span class="tab-label">Dispatch</span>
+  </div>
+  <div class="nav-tab" id="nav-returns" onclick="switchTab('returns')">
+    <span class="tab-icon">↩️</span><span class="tab-label">Returns</span>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">Finance & Analytics</div>
+  <div class="nav-tab" id="nav-wages" onclick="switchTab('wages')">
+    <span class="tab-icon">₹</span><span class="tab-label">Wages</span>
+  </div>
+  <div class="nav-tab" id="nav-analytics" onclick="switchTab('analytics')">
+    <span class="tab-icon">📊</span><span class="tab-label">Analytics</span>
+  </div>
+  <div class="nav-tab" id="nav-skujourney" onclick="switchTab('skujourney')">
+    <span class="tab-icon">🔍</span><span class="tab-label">Piece Journey</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ── TAB 1: PRODUCTION ENTRY ── -->
+<div class="tab-content active" id="tab-production">
+  <div class="content">
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Batches</div>
+        <div class="stat-value c-gold" id="stat-batches">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Pcs Assigned</div>
+        <div class="stat-value" id="stat-total-pcs">0</div>
+      </div>
+      <div class="stat-card" onclick="openStageModal('WIP')" style="cursor:pointer;">
+        <div class="stat-label">🟡 WIP</div>
+        <div class="stat-value c-amber" id="stat-wip">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+      <div class="stat-card" onclick="openStageModal('FINISHED')" style="cursor:pointer;">
+        <div class="stat-label">🟢 Finished Goods</div>
+        <div class="stat-value c-green" id="stat-finished">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+      <div class="stat-card" onclick="openStageModal('RECEIVED')" style="cursor:pointer;">
+        <div class="stat-label">🔵 Received Office</div>
+        <div class="stat-value c-blue" id="stat-received">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">New Production Entry</div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label style="margin-bottom:0;">SKU</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="showAddSKUInline()">+ Add SKU</button>
+          </div>
+          <select id="entry-sku"><option value="">— Select SKU —</option></select>
+          <div id="add-sku-inline" style="display:none;margin-top:8px;">
+            <div style="display:grid;grid-template-columns:1fr 80px auto;gap:6px;">
+              <input type="text" id="new-sku-name" placeholder="SKU name" style="border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+              <input type="number" id="new-sku-rate" placeholder="₹/pc" style="border:1px solid var(--gold);border-radius:8px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddSKU()">✓</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label style="margin-bottom:0;">Karigar Name</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="showAddKarigarInline()">+ Add Karigar</button>
+          </div>
+          <select id="entry-karigar"><option value="">— Select Karigar —</option></select>
+          <div id="add-karigar-inline" style="display:none;margin-top:8px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:6px;">
+              <input type="text" id="new-karigar-name" placeholder="Karigar ka naam" style="border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddKarigar()">✓</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Quantity (pcs)</label>
+          <input type="number" id="entry-qty" min="1" max="500" placeholder="e.g. 50" />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="entry-date" />
+        </div>
+        <div class="form-group form-full">
+          <label>Notes (optional)</label>
+          <input type="text" id="entry-notes" placeholder="Any remarks..." />
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="createBatch()">✦ Generate Batch & Barcodes</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">Production Batches</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" placeholder="Search SKU / Karigar..." style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;width:200px;outline:none;background:var(--paper);" oninput="renderBatches(this.value,document.getElementById('batch-date-filter').value)" />
+          <input type="date" id="batch-date-filter" style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);" onchange="renderBatches(document.querySelector('#batches-card input[type=text]').value,this.value)" />
+          <button class="btn btn-outline btn-sm" onclick="document.querySelector('#batches-card input[type=text]').value='';document.getElementById('batch-date-filter').value='';renderBatches()">✕ Clear</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Batch ID</th><th>Date</th><th>SKU</th><th>Karigar</th><th>Total Qty</th><th>Piece Status</th><th>Batch Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="batches-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="batches-empty">No batches yet. Create your first production entry above.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── TAB 2: FACTORY SCAN ── -->
+<div class="tab-content" id="tab-factory">
+  <div class="content">
+    <div class="card">
+      <div class="card-title">Factory Scan — WIP → Finished Goods</div>
+      <p style="font-size:13px;color:var(--ink-mute);margin-bottom:16px;">Scan the barcode once the piece is ready. <strong>Duplicate scans are automatically rejected</strong> — each piece is counted only once.</p>
+      <div class="scanner-box">
+        <div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px;">📷 Scan Barcode or type Piece ID</div>
+        <input class="scanner-input" id="factory-scan-input" type="text" placeholder="SCAN / TYPE PIECE ID" autocomplete="off" onkeydown="handleFactoryScan(event)" />
+        <div id="factory-scan-result" class="scan-result"></div>
+      </div>
+    </div>
+    <div class="card" style="background:var(--cream-2);border:1px solid var(--line);">
+      <div class="card-title">🔍 Piece Journey Lookup — Scan any piece barcode</div>
+      <div style="display:flex;gap:10px;">
+        <input type="text" id="journey-lookup-input" placeholder="Scan or type Piece ID..."
+          style="flex:1;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--paper);color:var(--ink);outline:none;"
+          onkeydown="if(event.key==='Enter')lookupPieceJourney(this.value)" />
+        <button class="btn btn-outline" onclick="lookupPieceJourney(document.getElementById('journey-lookup-input').value)">Search</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Factory Scan Log</div>
+      <div class="filter-bar">
+        <input type="text" id="factory-filter-piece" placeholder="Piece ID..." oninput="renderFactoryLog()" style="width:140px;" />
+        <input type="text" id="factory-filter-batch" placeholder="Batch ID..." oninput="renderFactoryLog()" style="width:130px;" />
+        <select id="factory-filter-sku" onchange="renderFactoryLog()"><option value="">All SKUs</option></select>
+        <select id="factory-filter-karigar" onchange="renderFactoryLog()"><option value="">All Karigars</option></select>
+        <input type="date" id="factory-filter-date" oninput="renderFactoryLog()" />
+        <button class="btn btn-outline btn-sm" onclick="clearFactoryFilters()">✕ Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Piece ID</th><th>Batch</th><th>SKU</th><th>Karigar</th><th>Date</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="factory-log-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="factory-log-empty">No pieces scanned yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: OFFICE SCAN ── -->
+<div class="tab-content" id="tab-office">
+  <div class="content">
+
+    <!-- Production Overview Stats (visible to office) -->
+    <div class="stats-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-label">Total Assigned</div>
+        <div class="stat-value c-gold" id="office-stat-total">0</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer;" onclick="openStageModal('WIP')">
+        <div class="stat-label">🟡 WIP</div>
+        <div class="stat-value c-amber" id="office-stat-wip">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer;" onclick="openStageModal('FINISHED')">
+        <div class="stat-label">🟢 Finished Goods</div>
+        <div class="stat-value c-green" id="office-stat-finished">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer;" onclick="openStageModal('RECEIVED')">
+        <div class="stat-label">🔵 Received Office</div>
+        <div class="stat-value c-blue" id="office-stat-received">0</div>
+        <div style="font-size:10px;color:var(--ink-mute);margin-top:4px;font-weight:600;">TAP TO VIEW ▸</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🚀 Dispatched</div>
+        <div class="stat-value c-gold" id="office-stat-dispatched">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Office Scan — Finished Goods → Received in Office</div>
+      <p style="font-size:13px;color:var(--ink-mute);margin-bottom:16px;">Only <strong>Finished Goods</strong> pieces are accepted. WIP pieces will be rejected.</p>
+      <div class="scanner-box">
+        <div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px;">📷 Scan Barcode or type Piece ID (Office)</div>
+        <input class="scanner-input" id="office-scan-input" type="text" placeholder="SCAN / TYPE PIECE ID" autocomplete="off" onkeydown="handleOfficeScan(event)" />
+        <div id="office-scan-result" class="scan-result"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Office Received Log</div>
+      <div class="filter-bar">
+        <input type="text" id="office-filter-piece" placeholder="Piece ID..." oninput="renderOfficeLog()" style="width:140px;" />
+        <input type="text" id="office-filter-batch" placeholder="Batch ID..." oninput="renderOfficeLog()" style="width:130px;" />
+        <select id="office-filter-sku" onchange="renderOfficeLog()"><option value="">All SKUs</option></select>
+        <select id="office-filter-karigar" onchange="renderOfficeLog()"><option value="">All Karigars</option></select>
+        <input type="date" id="office-filter-date" oninput="renderOfficeLog()" />
+        <button class="btn btn-outline btn-sm" onclick="clearOfficeFilters()">✕ Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Piece ID</th><th>Batch</th><th>SKU</th><th>Karigar</th><th>Date</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="office-log-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="office-log-empty">No pieces received yet.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Batch-wise Live Status</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Batch ID</th><th>Date</th><th>SKU</th><th>Karigar</th><th>Total</th><th>🟡 WIP</th><th>🟢 Finished</th><th>🔵 Received</th><th>⚠ Pending</th><th>Status</th></tr></thead>
+          <tbody id="office-summary-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="office-summary-empty">No batches yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: QUALITY CHECK ── -->
+<div class="tab-content" id="tab-qc">
+  <div class="content">
+
+    <!-- QC Stats -->
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr);">
+      <div class="stat-card">
+        <div class="stat-label">Total QC Done</div>
+        <div class="stat-value c-gold" id="stat-qc-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending QC</div>
+        <div class="stat-value c-amber" id="stat-qc-pending">0</div>
+      </div>
+    </div>
+
+    <!-- QC Scan -->
+    <div class="card">
+      <div class="card-title">Quality Check — Scan Received Piece</div>
+      <p style="font-size:13px;color:var(--ink-mute);margin-bottom:16px;">Only <strong>Received in Office</strong> pieces can be quality checked.</p>
+      <div class="scanner-box">
+        <div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px;">📷 Scan piece barcode</div>
+        <input class="scanner-input" id="qc-scan-input" type="text" placeholder="SCAN / TYPE PIECE ID" autocomplete="off" onkeydown="handleQCScan(event)" />
+        <div id="qc-scan-result" class="scan-result"></div>
+      </div>
+
+      <!-- QC Form — shown after valid scan -->
+      <div id="qc-form-wrap" style="display:none;margin-top:16px;background:var(--cream-2);border-radius:var(--radius);padding:20px;border:1px solid var(--gold-soft);">
+        <div id="qc-piece-info" style="margin-bottom:14px;padding:10px 14px;background:var(--gold-soft);border-radius:8px;font-size:13px;font-weight:600;color:var(--gold-dark);"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <label style="margin-bottom:0;">Checker 1</label>
+              <button type="button" class="btn btn-outline btn-sm" onclick="showAddCheckerInline()">+ Add</button>
+            </div>
+            <select id="qc-checker"><option value="">— Select Checker —</option></select>
+            <div id="add-checker-inline" style="display:none;margin-top:8px;">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px;">
+                <input type="text" id="new-checker-name" placeholder="Enter checker name"
+                  style="border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+                <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddChecker()">✓</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <label style="margin-bottom:0;">Checker 2 (optional)</label>
+            </div>
+            <select id="qc-checker2"><option value="">— Select Checker —</option></select>
+          </div>
+          <div class="form-group form-full">
+            <label>Notes (optional)</label>
+            <input type="text" id="qc-notes" placeholder="Any remarks..." />
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="submitQC()">✓ Save QC Entry</button>
+          <button class="btn btn-outline" onclick="resetQCForm()">✕ Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QC Log -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">QC Log</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="qclog-search" placeholder="SKU / Checker / Piece..." oninput="renderQCLog()"
+            style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;width:180px;outline:none;background:var(--paper);" />
+          <input type="date" id="qclog-date-from" onchange="renderQCLog()" title="From date"
+            style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);" />
+          <input type="date" id="qclog-date-to" onchange="renderQCLog()" title="To date"
+            style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);" />
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('qclog-search').value='';document.getElementById('qclog-date-from').value='';document.getElementById('qclog-date-to').value='';renderQCLog()">✕ Clear</button>
+          <button class="btn btn-outline btn-sm" onclick="exportQCExcel()" style="color:var(--green);border-color:var(--green);">↓ Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Piece ID</th><th>SKU</th><th>Karigar</th><th>Checker</th><th>Notes</th><th>Action</th>
+          </tr></thead>
+          <tbody id="qc-log-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="qc-log-empty">No QC entries yet.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── TAB 5: DISPATCH ── -->
+<div class="tab-content" id="tab-dispatch">
+  <div class="content">
+    <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-card"><div class="stat-label">Total Dispatched</div><div class="stat-value c-gold" id="stat-dispatch-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">Today Dispatched</div><div class="stat-value c-green" id="stat-dispatch-today">0</div></div>
+      <div class="stat-card"><div class="stat-label">Pending Dispatch</div><div class="stat-value c-amber" id="stat-dispatch-pending">0</div></div>
+    </div>
+    <!-- Session Header — always visible, editable anytime -->
+    <div class="card" style="background:var(--paper);border:2px solid var(--gold-soft);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">Session Info — Platform / Dispatcher / Date</div>
+        <div id="dispatch-session-badge" style="display:none;background:var(--green-soft);border:1px solid var(--green);border-radius:100px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--green);">● ACTIVE</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;">
+        <div class="form-group" style="margin:0;">
+          <label>Platform</label>
+          <select id="dispatch-platform" onchange="updateSessionInfo()">
+            <option value="">— Select Platform —</option>
+            <option>Amazon</option><option>Flipkart</option><option>Meesho</option>
+            <option>FirstCry</option><option>Website</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label style="margin-bottom:0;">Dispatcher</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="showAddDispatcherInline()">+ Add</button>
+          </div>
+          <select id="dispatch-dispatcher" onchange="updateSessionInfo()"><option value="">— Select —</option></select>
+          <div id="add-dispatcher-inline" style="display:none;margin-top:8px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:6px;">
+              <input type="text" id="new-dispatcher-name" placeholder="Enter dispatcher name"
+                style="border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+              <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddDispatcher()">✓</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Date</label>
+          <input type="date" id="dispatch-date" onchange="updateSessionInfo()" />
+        </div>
+        <div>
+          <button class="btn btn-primary" id="dispatch-start-btn" onclick="startDispatchSession()">▶ Start</button>
+        </div>
+      </div>
+      <!-- Count bar — shown after session start -->
+      <div id="dispatch-count-bar" style="display:none;margin-top:14px;background:var(--green-soft);border:1px solid var(--green);border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;color:var(--green);">
+        ✓ 0 pieces dispatched
+      </div>
+    </div>
+
+    <!-- Scan section — always visible after session start -->
+    <div id="dispatch-scan-card" style="display:none;">
+      <div class="card">
+        <div class="card-title">Scan — Piece Barcode → Order ID → AWB</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">① Piece Barcode</div>
+            <input type="text" id="dispatch-scan-input" class="scanner-input" placeholder="SCAN PIECE" autocomplete="off"
+              onkeydown="if(event.key==='Enter'){handleDispatchPieceScan();}" style="font-size:14px;padding:10px 14px;letter-spacing:1px;" />
+            <div id="dispatch-piece-result" style="margin-top:6px;font-size:12px;min-height:18px;font-weight:600;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">② Order ID</div>
+            <input type="text" id="dispatch-order-id" class="scanner-input" placeholder="SCAN ORDER ID" autocomplete="off"
+              onkeydown="if(event.key==='Enter'){document.getElementById('dispatch-awb').focus();}" style="font-size:14px;padding:10px 14px;letter-spacing:1px;" />
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">③ AWB Number</div>
+            <input type="text" id="dispatch-awb" class="scanner-input" placeholder="SCAN AWB" autocomplete="off"
+              onkeydown="if(event.key==='Enter'){submitDispatch();}" style="font-size:14px;padding:10px 14px;letter-spacing:1px;" />
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-primary" onclick="submitDispatch()">🚀 Save & Next</button>
+          <button class="btn btn-outline" onclick="clearDispatchRow()">✕ Clear</button>
+          <button class="btn btn-danger btn-sm" onclick="endDispatchSession()">■ End Session</button>
+          <span id="dispatch-scan-result" style="font-size:13px;font-weight:600;color:var(--red);margin-left:8px;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">Dispatch Log</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="dlog-search" placeholder="Order ID / SKU / AWB..." oninput="renderDispatchLog()" style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;width:180px;outline:none;background:var(--paper);" />
+          <input type="date" id="dlog-date-from" onchange="renderDispatchLog()" title="From date"
+            style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);" />
+          <input type="date" id="dlog-date-to" onchange="renderDispatchLog()" title="To date"
+            style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);" />
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('dlog-search').value='';document.getElementById('dlog-date-from').value='';document.getElementById('dlog-date-to').value='';renderDispatchLog()">✕ Clear</button>
+          <button class="btn btn-outline btn-sm" onclick="exportDispatchExcel()" style="color:var(--green);border-color:var(--green);">↓ Excel</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Piece ID</th><th>SKU</th><th>Karigar</th><th>Platform</th><th>Order ID</th><th>AWB</th><th>Dispatcher</th><th>Action</th></tr></thead>
+          <tbody id="dispatch-log-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="dispatch-log-empty">No dispatches yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 6: RETURNS ── -->
+<div class="tab-content" id="tab-returns">
+  <div class="content">
+    <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="stat-card"><div class="stat-label">Total Returns</div><div class="stat-value c-gold" id="stat-ret-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">QC Pass → Refund</div><div class="stat-value c-green" id="stat-ret-pass">0</div></div>
+      <div class="stat-card"><div class="stat-label">QC Fail → Deduct</div><div class="stat-value" style="color:var(--red);" id="stat-ret-fail">0</div></div>
+      <div class="stat-card"><div class="stat-label">Pending QC</div><div class="stat-value c-amber" id="stat-ret-pending">0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Return Entry</div>
+      <div class="scanner-box">
+        <div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px;">📷 Scan piece barcode</div>
+        <input class="scanner-input" id="return-scan-input" type="text" placeholder="SCAN PIECE BARCODE" autocomplete="off" onkeydown="handleReturnScan(event)" />
+        <div id="return-scan-result" class="scan-result"></div>
+      </div>
+      <div id="return-form-wrap" style="display:none;margin-top:16px;background:var(--cream-2);border-radius:var(--radius);padding:20px;border:1px solid var(--gold-soft);">
+        <div id="return-piece-info" style="margin-bottom:14px;padding:10px 14px;background:var(--gold-soft);border-radius:8px;font-size:13px;font-weight:600;color:var(--gold-dark);"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Return Reason</label>
+            <select id="return-reason">
+              <option value="">— Select Reason —</option>
+              <option>Size issue</option><option>Quality defect</option><option>Wrong item sent</option>
+              <option>Damaged in transit</option><option>Customer changed mind</option>
+              <option>Stitching problem</option><option>Colour mismatch</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <label style="margin-bottom:0;">QC Checker</label>
+              <button type="button" class="btn btn-outline btn-sm" onclick="showAddCheckerInline2()">+ Add</button>
+            </div>
+            <select id="return-checker"><option value="">— Select Checker —</option></select>
+            <div id="add-checker-inline2" style="display:none;margin-top:8px;">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px;">
+                <input type="text" id="new-checker-name2" placeholder="Checker naam" style="border:1px solid var(--gold);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;outline:none;background:var(--paper);" />
+                <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddChecker2()">✓</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group form-full">
+            <label>QC Result</label>
+            <div style="display:flex;gap:10px;margin-top:4px;">
+              <button class="btn btn-success" onclick="submitReturn('PASS')" style="flex:1;">✅ Pass → Full Refund</button>
+              <button class="btn btn-danger" onclick="submitReturn('FAIL')" style="flex:1;">❌ Fail → Deduct Amount</button>
+            </div>
+          </div>
+          <div class="form-group form-full"><label>Notes</label><input type="text" id="return-notes" placeholder="Extra details..." /></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">Returns Log</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="rlog-search" placeholder="Piece / SKU / Reason..." oninput="renderReturnLog()" style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;width:200px;outline:none;background:var(--paper);" />
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('rlog-search').value='';renderReturnLog()">✕</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Piece ID</th><th>SKU</th><th>Karigar</th><th>Checker</th><th>Reason</th><th>QC</th><th>Notes</th><th>Action</th></tr></thead>
+          <tbody id="return-log-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="return-log-empty">No returns yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 7: ANALYTICS ── -->
+<div class="tab-content" id="tab-analytics">
+  <div class="content">
+    <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+      <div class="stat-card"><div class="stat-label">Total Pieces</div><div class="stat-value c-gold" id="an-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">Dispatched</div><div class="stat-value c-green" id="an-dispatched">0</div></div>
+      <div class="stat-card"><div class="stat-label">Returns</div><div class="stat-value" style="color:var(--red);" id="an-returns">0</div></div>
+      <div class="stat-card"><div class="stat-label">Return Rate</div><div class="stat-value c-amber" id="an-return-rate">0%</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👷 Karigar Performance</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Karigar</th><th>Produced</th><th>Dispatched</th><th>Returns</th><th>Return Rate</th><th>Rating</th></tr></thead>
+          <tbody id="an-karigar-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="an-karigar-empty">No data.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">✅ Checker Performance</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Checker</th><th>Total Checked</th><th>Returns After Check</th><th>Miss Rate</th><th>Rating</th></tr></thead>
+          <tbody id="an-checker-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="an-checker-empty">No data.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">↩️ Return Reason Breakdown</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Reason</th><th>Count</th><th>% of Returns</th></tr></thead>
+          <tbody id="an-reason-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="an-reason-empty">No returns yet.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📦 SKU-wise Return Rate</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SKU</th><th>Dispatched</th><th>Returns</th><th>Return Rate</th></tr></thead>
+          <tbody id="an-sku-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="an-sku-empty">No data.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB: SKU JOURNEY ── -->
+<div class="tab-content" id="tab-skujourney">
+  <div class="content">
+    <div class="card">
+      <div class="card-title">🔍 Piece Journey — Single Piece Barcode Scan</div>
+      <p style="font-size:13px;color:var(--ink-mute);margin-bottom:16px;">Scan any piece barcode — the complete journey of that <strong>single piece</strong> will be shown (WIP → Factory → Office → QC → Dispatch).</p>
+      <div class="scanner-box">
+        <div style="font-size:13px;color:var(--ink-mute);margin-bottom:12px;">📷 Scan piece barcode or type Piece ID</div>
+        <input class="scanner-input" id="sku-journey-input" type="text" placeholder="SCAN / TYPE PIECE ID"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')lookupSinglePieceJourney(this.value)"
+          style="font-size:16px;letter-spacing:2px;" />
+        <button class="btn btn-primary" style="margin-top:12px;" onclick="lookupSinglePieceJourney(document.getElementById('sku-journey-input').value)">🔍 Search Piece</button>
+        <div id="pj-scan-result" class="scan-result" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Single Piece Journey Card -->
+    <div id="piece-journey-card" style="display:none;" class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--ink);" id="pj-piece-id">—</div>
+          <div style="font-size:12px;color:var(--ink-mute);margin-top:3px;">
+            SKU: <strong id="pj-sku">—</strong> &nbsp;|&nbsp; Karigar: <strong id="pj-karigar">—</strong> &nbsp;|&nbsp; Batch: <span id="pj-batch" style="font-family:'JetBrains Mono',monospace;">—</span>
+          </div>
+        </div>
+        <div id="pj-status-badge"></div>
+      </div>
+
+      <!-- Journey Timeline -->
+      <div style="position:relative;padding-left:32px;">
+        <!-- Vertical line -->
+        <div style="position:absolute;left:10px;top:8px;bottom:8px;width:2px;background:var(--line);border-radius:2px;"></div>
+
+        <!-- Step 1: WIP / Production -->
+        <div class="pj-step" id="pj-step-wip">
+          <div class="pj-dot" id="pj-dot-wip"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title">✦ Production Entry (WIP)</div>
+            <div class="pj-step-detail" id="pj-detail-wip">—</div>
+          </div>
+        </div>
+
+        <!-- Step 2: Factory Scan -->
+        <div class="pj-step" id="pj-step-finished">
+          <div class="pj-dot" id="pj-dot-finished"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title">🏭 Factory Scan — Finished Goods</div>
+            <div class="pj-step-detail" id="pj-detail-finished">—</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Office Received -->
+        <div class="pj-step" id="pj-step-office">
+          <div class="pj-dot" id="pj-dot-office"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title">📦 Received in Office</div>
+            <div class="pj-step-detail" id="pj-detail-office">—</div>
+          </div>
+        </div>
+
+        <!-- Step 4: QC -->
+        <div class="pj-step" id="pj-step-qc">
+          <div class="pj-dot" id="pj-dot-qc"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title">✅ Quality Check</div>
+            <div class="pj-step-detail" id="pj-detail-qc">—</div>
+          </div>
+        </div>
+
+        <!-- Step 5: Dispatch -->
+        <div class="pj-step" id="pj-step-dispatch">
+          <div class="pj-dot" id="pj-dot-dispatch"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title">🚀 Dispatched</div>
+            <div class="pj-step-detail" id="pj-detail-dispatch">—</div>
+          </div>
+        </div>
+
+        <!-- Step 6: Returned (only if returned) -->
+        <div class="pj-step" id="pj-step-return" style="display:none;">
+          <div class="pj-dot" id="pj-dot-return" style="background:var(--red);"></div>
+          <div class="pj-step-content">
+            <div class="pj-step-title" style="color:var(--red);">↩️ Returned</div>
+            <div class="pj-step-detail" id="pj-detail-return">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.pj-step{display:flex;align-items:flex-start;gap:0;margin-bottom:20px;position:relative;}
+.pj-dot{width:20px;height:20px;border-radius:50%;background:var(--line);border:3px solid white;box-shadow:0 0 0 2px var(--line);flex-shrink:0;position:absolute;left:-32px;top:2px;transition:all .2s;}
+.pj-dot.done{background:var(--green);box-shadow:0 0 0 2px var(--green);}
+.pj-dot.active{background:var(--amber);box-shadow:0 0 0 2px var(--amber);}
+.pj-dot.dispatched{background:var(--gold);box-shadow:0 0 0 2px var(--gold);}
+.pj-step-content{padding-bottom:4px;}
+.pj-step-title{font-size:12px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.07em;font-family:'Inter',sans-serif;}
+.pj-step-title.done{color:var(--ink);}
+.pj-step-detail{font-size:13px;color:var(--ink-soft);margin-top:3px;font-family:'Inter',sans-serif;}
+</style>
+
+<!-- ── TAB 4: WAGES ── -->
+<div class="tab-content" id="tab-wages">
+  <div class="content">
+    <div class="wages-card">
+      <div class="w-title">Total Wages Payable — Factory Scan (Finished Goods) Basis</div>
+      <div class="w-value" id="total-wages">₹0</div>
+      <div id="wages-date-range-label" style="font-size:11px;color:var(--ink-mute);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em;"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0;">Karigar-wise Wages Breakdown</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <!-- Date filters -->
+          <div style="display:flex;align-items:center;gap:6px;background:var(--cream-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;">
+            <span style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">From</span>
+            <input type="date" id="wages-date-from" onchange="renderWages()"
+              style="border:none;background:transparent;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);outline:none;cursor:pointer;" />
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:var(--cream-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;">
+            <span style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">To</span>
+            <input type="date" id="wages-date-to" onchange="renderWages()"
+              style="border:none;background:transparent;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);outline:none;cursor:pointer;" />
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('wages-date-from').value='';document.getElementById('wages-date-to').value='';renderWages();">✕ Clear Dates</button>
+          <!-- Karigar filter -->
+          <select id="wages-karigar-filter" onchange="renderWages()" style="border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-family:'Inter',sans-serif;font-size:12px;outline:none;background:var(--paper);">
+            <option value="">All Karigars</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="printWageSlip()">🖨 Print Slip</button>
+          <button class="btn btn-outline btn-sm" onclick="exportWages()">↓ Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Karigar</th><th>Category</th><th>SKU</th><th>Rate Type</th><th>🟢 Finished Pcs</th><th>Rate/Pc</th><th>Amount</th><th>Scan Date Range</th></tr></thead>
+          <tbody id="wages-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="wages-empty">No finished pieces in selected period.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /body-wrap -->
+
+<!-- ══ QR MODAL ══ -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title" id="qr-modal-title">Barcodes</div>
+      <button class="btn btn-outline btn-sm" onclick="closeQRModal()">✕ Close</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-mute);margin-bottom:16px;">Print karke pieces pe lagao.</p>
+    <div style="margin-bottom:20px;">
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print Barcodes</button>
+    </div>
+    <div class="qr-print-grid" id="qr-grid"></div>
+  </div>
+</div>
+
+<!-- ══ STAGE MODAL ══ -->
+<div class="modal-overlay" id="stage-modal">
+  <div class="modal" style="max-width:540px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" id="stage-modal-title">Stage Breakdown</div>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('stage-modal').classList.remove('open')">✕ Close</button>
+    </div>
+    <div id="stage-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══ WAGE SLIP MODAL ══ -->
+<div class="modal-overlay" id="slip-modal">
+  <div class="modal" style="max-width:600px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="modal-title">Wage Slip</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="window.print()">🖨 Print</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('slip-modal').classList.remove('open')">✕ Close</button>
+      </div>
+    </div>
+
+    <!-- Deductions / Additions input panel -->
+    <div style="background:var(--cream-2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Adjustments (fill before printing)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Meal Days Present</label>
+          <input type="number" id="slip-meal-days" min="0" placeholder="e.g. 26" oninput="recalcSlip()"
+            style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--paper);color:var(--ink);outline:none;" />
+          <div style="font-size:10px;color:var(--ink-mute);margin-top:3px;">@ ₹100/day</div>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Advances (₹)</label>
+          <input type="number" id="slip-advances" min="0" placeholder="e.g. 500" oninput="recalcSlip()"
+            style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--paper);color:var(--ink);outline:none;" />
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px;">Loan Deduction (₹)</label>
+          <input type="number" id="slip-loan" min="0" placeholder="e.g. 1000" oninput="recalcSlip()"
+            style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--paper);color:var(--ink);outline:none;" />
+        </div>
+      </div>
+    </div>
+
+    <div id="slip-content" class="slip-wrap"></div>
+  </div>
+</div>
+
+<!-- ══ PIECE JOURNEY MODAL ══ -->
+<div class="modal-overlay" id="journey-modal">
+  <div class="modal" style="max-width:500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" id="journey-modal-title">Piece Journey</div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('journey-modal')">✕ Close</button>
+    </div>
+    <div id="journey-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙ Settings</div>
+
+    <div class="settings-section">
+      <h3>🔐 Login Passwords</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Factory Password (Production + Factory Scan + Wages)</label>
+          <input type="password" id="set-factory-pass" placeholder="New factory password" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);outline:none;" />
+        </div>
+        <div class="form-group">
+          <label>Office Password (Office Scan only)</label>
+          <input type="password" id="set-office-pass" placeholder="New office password" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);outline:none;" />
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--ink-mute);margin-top:8px;">⚠ Leave blank to keep current password unchanged. Default: factory123 / office123</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>🔥 Firebase Real-Time Sync</h3>
+      <p style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;">Ek baar setup karo — sab devices pe automatically sync hoga!</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group form-full">
+          <label>Firebase Database URL</label>
+          <input type="text" id="fb-db-url" placeholder="https://rahul-c7940-default-rtdb.asia-southeast1.firebasedatabase.app"
+            style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--cream-2);color:var(--ink);outline:none;" />
+        </div>
+        <div class="form-group">
+          <label>Firebase API Key</label>
+          <input type="text" id="fb-api-key" placeholder="AIzaSy..."
+            style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--cream-2);color:var(--ink);outline:none;" />
+        </div>
+        <div class="form-group">
+          <label>Firebase Project ID</label>
+          <input type="text" id="fb-project-id" placeholder="rahul-c7940"
+            style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--cream-2);color:var(--ink);outline:none;" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="testFirebaseConnection()" style="color:var(--blue);border-color:var(--blue);">🔌 Test Connection</button>
+        <button class="btn btn-danger btn-sm" onclick="disableFirebase()">✕ Disable Sync</button>
+        <span id="fb-test-result" style="font-size:11px;font-weight:600;"></span>
+      </div>
+      <p style="font-size:10px;color:var(--ink-mute);margin-top:8px;">⚠ Ye credentials localStorage me save hote hain. Sirf trusted devices pe use karo.</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>Google Sheets</h3>
+      <div class="form-group">
+        <label>Apps Script Web App URL</label>
+        <input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);outline:none;" />
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="downloadAppsScript()" style="margin-top:8px;">↓ Download Apps Script</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>SKU Master & Rates</h3>
+      <div id="sku-config-rows"></div>
+      <button class="btn btn-outline btn-sm" onclick="addSKURow()" style="margin-top:10px;">+ Add SKU</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>Karigar Master</h3>
+      <div id="karigar-config-rows"></div>
+      <button class="btn btn-outline btn-sm" onclick="addKarigarRow()" style="margin-top:10px;">+ Add Karigar</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>✅ Checker Master (QC Team)</h3>
+      <div id="checker-config-rows"></div>
+      <button class="btn btn-outline btn-sm" onclick="addCheckerRow()" style="margin-top:10px;">+ Add Checker</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🚀 Dispatcher Master</h3>
+      <div id="dispatcher-config-rows"></div>
+      <button class="btn btn-outline btn-sm" onclick="addDispatcherRow()" style="margin-top:10px;">+ Add Dispatcher</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">✓ Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════ SCRIPT ══════════════════════════ -->
+<script>
+// ── STATE ──
+let state = {
+  batches: [],
+  factoryLog: [],
+  officeLog: [],
+  qcLog: [],
+  dispatchLog: [],
+  returnLog: [],
+  settings: {
+    sheetsUrl: '',
+    skus: [],
+    karigars: [],
+    checkers: [],
+    dispatchers: [],
+    factoryPass: 'factory123',
+    officePass: 'office123'
+  }
+};
+let currentRole = null; // 'factory' | 'office'
+let loginRole = 'factory';
+
+// ── SUPABASE SYNC ENGINE ──
+const SUPA_URL = 'https://mbkrulizjpxbzumhhvcm.supabase.co';
+const SUPA_KEY = 'sb_publishable_Er2UZq4Wij2hsxAMfILAJQ_VlC5rsu_';
+let supaClient = null;
+let supaEnabled = false;
+let supaSyncTimer = null;
+let supaChannel = null;
+
+function sbSetStatus(msg, color) {
+  const el = document.getElementById('firebase-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || 'var(--ink-mute)';
+  el.style.borderColor = color || 'var(--line)';
+}
+
+function initSupabase() {
+  try {
+    supaClient = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    supaEnabled = true;
+    sbSetStatus('🔄 CONNECTING...', '#2a6a9a');
+    // Real-time listener for batches table
+    if (supaChannel) supaChannel.unsubscribe();
+    supaChannel = supaClient
+      .channel('trinetra-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, () => {
+        pullFromSupabase(true); // silent pull on remote change
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'factory_log' }, () => {
+        pullFromSupabase(true);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') sbSetStatus('☁ LIVE SYNC', '#4a7a4a');
+        else if (status === 'CLOSED') sbSetStatus('⬡ OFFLINE');
+      });
+  } catch(e) {
+    console.error('Supabase init error:', e);
+    sbSetStatus('⚠ FAILED', '#a64a3a');
+  }
+}
+
+// Push state to Supabase
+function sbPush() {
+  if (!supaEnabled || !supaClient) return;
+  clearTimeout(supaSyncTimer);
+  supaSyncTimer = setTimeout(async () => {
+    try {
+      sbSetStatus('🔄 SAVING...', '#c98a2a');
+      // Upsert batches
+      if (state.batches && state.batches.length > 0) {
+        const batchRows = state.batches.map(b => ({
+          id: b.id, date: b.date, sku: b.sku, karigar: b.karigar,
+          qty: b.qty, status: b.status || 'WIP', notes: b.notes || '',
+          pieces: b.pieces || [], updated_at: new Date().toISOString()
+        }));
+        await supaClient.from('batches').upsert(batchRows, { onConflict: 'id' });
+      }
+      // Upsert factory log
+      if (state.factoryLog && state.factoryLog.length > 0) {
+        const rows = state.factoryLog.map(l => ({
+          id: l.id, date: l.date, time: l.time, piece_id: l.pieceId,
+          batch_id: l.batchId, sku: l.sku, karigar: l.karigar, scanned_by: l.scannedBy || 'Factory'
+        }));
+        await supaClient.from('factory_log').upsert(rows, { onConflict: 'id' });
+      }
+      // Upsert office log
+      if (state.officeLog && state.officeLog.length > 0) {
+        const rows = state.officeLog.map(l => ({
+          id: l.id, date: l.date, time: l.time, piece_id: l.pieceId,
+          batch_id: l.batchId, sku: l.sku, karigar: l.karigar, received_by: l.receivedBy || 'Office'
+        }));
+        await supaClient.from('office_log').upsert(rows, { onConflict: 'id' });
+      }
+      // Upsert qc log
+      if (state.qcLog && state.qcLog.length > 0) {
+        const rows = state.qcLog.map(l => ({
+          id: l.id, date: l.date, time: l.time, piece_id: l.pieceId,
+          sku: l.sku, karigar: l.karigar, checker: l.checkerDisplay || l.checker || '',
+          result: l.result || '', notes: l.notes || ''
+        }));
+        await supaClient.from('qc_log').upsert(rows, { onConflict: 'id' });
+      }
+      // Upsert dispatch log
+      if (state.dispatchLog && state.dispatchLog.length > 0) {
+        const rows = state.dispatchLog.map(l => ({
+          id: l.id, date: l.date, time: l.time, piece_id: l.pieceId,
+          sku: l.sku, karigar: l.karigar, platform: l.platform || '',
+          order_id: l.orderId || '', awb: l.awb || '', dispatcher: l.dispatcher || ''
+        }));
+        await supaClient.from('dispatch_log').upsert(rows, { onConflict: 'id' });
+      }
+      // Upsert return log
+      if (state.returnLog && state.returnLog.length > 0) {
+        const rows = state.returnLog.map(l => ({
+          id: l.id, date: l.date, time: l.time, piece_id: l.pieceId,
+          sku: l.sku, karigar: l.karigar, checker: l.checker || '',
+          reason: l.reason || '', qc_result: l.qcResult || '', notes: l.notes || ''
+        }));
+        await supaClient.from('return_log').upsert(rows, { onConflict: 'id' });
+      }
+      sbSetStatus('☁ LIVE SYNC', '#4a7a4a');
+    } catch(e) {
+      console.error('Supabase push error:', e);
+      sbSetStatus('⚠ SAVE FAILED', '#a64a3a');
+    }
+  }, 800);
+}
+
+// Pull latest data from Supabase
+async function pullFromSupabase(silent = false) {
+  if (!supaEnabled || !supaClient) return;
+  if (!silent) { sbSetStatus('🔄 PULLING...', '#c98a2a'); toast('🔄 Supabase se data aa raha hai...'); }
+  try {
+    const [b, fl, ol, ql, dl, rl] = await Promise.all([
+      supaClient.from('batches').select('*').order('created_at', { ascending: true }),
+      supaClient.from('factory_log').select('*').order('created_at', { ascending: true }),
+      supaClient.from('office_log').select('*').order('created_at', { ascending: true }),
+      supaClient.from('qc_log').select('*').order('created_at', { ascending: true }),
+      supaClient.from('dispatch_log').select('*').order('created_at', { ascending: true }),
+      supaClient.from('return_log').select('*').order('created_at', { ascending: true }),
+    ]);
+    if (b.data)  state.batches     = b.data.map(r => ({ id:r.id, date:r.date, sku:r.sku, karigar:r.karigar, qty:r.qty, status:r.status, notes:r.notes||'', pieces:r.pieces||[] }));
+    if (fl.data) state.factoryLog  = fl.data.map(r => ({ id:r.id, date:r.date, time:r.time, pieceId:r.piece_id, batchId:r.batch_id, sku:r.sku, karigar:r.karigar, scannedBy:r.scanned_by }));
+    if (ol.data) state.officeLog   = ol.data.map(r => ({ id:r.id, date:r.date, time:r.time, pieceId:r.piece_id, batchId:r.batch_id, sku:r.sku, karigar:r.karigar, receivedBy:r.received_by }));
+    if (ql.data) state.qcLog       = ql.data.map(r => ({ id:r.id, date:r.date, time:r.time, pieceId:r.piece_id, sku:r.sku, karigar:r.karigar, checker:r.checker, result:r.result, notes:r.notes }));
+    if (dl.data) state.dispatchLog = dl.data.map(r => ({ id:r.id, date:r.date, time:r.time, pieceId:r.piece_id, sku:r.sku, karigar:r.karigar, platform:r.platform, orderId:r.order_id, awb:r.awb, dispatcher:r.dispatcher }));
+    if (rl.data) state.returnLog   = rl.data.map(r => ({ id:r.id, date:r.date, time:r.time, pieceId:r.piece_id, sku:r.sku, karigar:r.karigar, checker:r.checker, reason:r.reason, qcResult:r.qc_result, notes:r.notes }));
+    localStorage.setItem('trinetra_factory_v5', JSON.stringify(state));
+    refreshAllUI();
+    sbSetStatus('☁ LIVE SYNC', '#4a7a4a');
+    if (!silent) toast('✅ Data sync ho gaya!', 3000);
+  } catch(e) {
+    console.error('Supabase pull error:', e);
+    sbSetStatus('⚠ PULL FAILED', '#a64a3a');
+    if (!silent) toast('❌ Pull failed: ' + e.message);
+  }
+}
+
+// Legacy Firebase stubs (no-op)
+function initFirebase() { initSupabase(); }
+function fbPush() { sbPush(); }
+function testFirebaseConnection() { toast('Supabase already connected! ☁'); }
+function disableFirebase() { toast('Supabase sync is always on.'); }
+
+function refreshAllUI() {
+  try {
+    updateStats();
+    renderBatches();
+    if (document.getElementById('tab-factory').classList.contains('active')) renderFactoryLog();
+    if (document.getElementById('tab-office').classList.contains('active')) { renderOfficeSummary(); renderOfficeLog(); }
+    if (document.getElementById('tab-qc').classList.contains('active')) { renderQCLog(); updateQCStats(); initQCSelects(); }
+    if (document.getElementById('tab-dispatch').classList.contains('active')) { renderDispatchLog(); updateDispatchStats(); initDispatchSelects(); }
+    if (document.getElementById('tab-returns').classList.contains('active')) { renderReturnLog(); updateReturnStats(); initReturnSelects(); }
+    if (document.getElementById('tab-analytics').classList.contains('active')) renderAnalytics();
+    if (document.getElementById('tab-wages').classList.contains('active')) renderWages();
+    initForm();
+  } catch(e) {}
+}
+
+// ── PERSIST ──
+function loadState() {
+  try { const s = localStorage.getItem('trinetra_factory_v5'); if (s) state = {...state, ...JSON.parse(s)}; } catch(e){}
+}
+function saveState() {
+  localStorage.setItem('trinetra_factory_v5', JSON.stringify(state));
+  sbPush(); // Supabase real-time sync
+}
+
+// ── LOGIN ──
+function setLoginRole(role) {
+  loginRole = role;
+  document.getElementById('role-tab-factory').classList.toggle('active', role==='factory');
+  document.getElementById('role-tab-office').classList.toggle('active', role==='office');
+  document.getElementById('login-role-label').textContent = role==='factory' ? 'Factory Password' : 'Office Password';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-password').focus();
+}
+
+function doLogin() {
+  const pass = document.getElementById('login-password').value.trim();
+  const err = document.getElementById('login-error');
+  // Always fallback to defaults if not set
+  const factoryPass = (state.settings && state.settings.factoryPass) ? state.settings.factoryPass : 'factory123';
+  const officePass  = (state.settings && state.settings.officePass)  ? state.settings.officePass  : 'office123';
+  if (loginRole === 'factory' && pass === factoryPass) {
+    currentRole = 'factory'; applyRoleUI(); document.getElementById('login-screen').classList.add('hidden');
+  } else if (loginRole === 'office' && pass === officePass) {
+    currentRole = 'office'; applyRoleUI(); document.getElementById('login-screen').classList.add('hidden');
+    switchTab('office');
+  } else {
+    err.style.display='block';
+        err.innerHTML = '\u274C Incorrect password! &nbsp;<span onclick="resetPasswords()" style="color:var(--red);font-weight:700;text-decoration:underline;cursor:pointer;">Reset to default</span>';
+    document.getElementById('login-password').value='';
+    document.getElementById('login-password').focus();
+  }
+}
+
+function resetPasswords() {
+  if (!confirm('Reset passwords to default (factory123 / office123)?')) return;
+  state.settings.factoryPass = 'factory123';
+  state.settings.officePass  = 'office123';
+  localStorage.setItem('trinetra_factory_v5', JSON.stringify(state));
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-password').focus();
+  alert('✓ Passwords reset! Use factory123 / office123 to login.');
+}
+
+function doLogout() {
+  currentRole = null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').style.display='none';
+  setLoginRole('factory');
+}
+
+function applyRoleUI() {
+  const isFactory = currentRole === 'factory';
+  const isOffice  = currentRole === 'office';
+  document.getElementById('header-role-badge').textContent = isFactory ? '🏭 Factory Login' : '📦 Office Login';
+
+  // Factory → Production Entry, Factory Scan, Wages, QC
+  // Office  → Office Scan, QC only
+  const access = {
+    production: isFactory,
+    factory:    isFactory,
+    office:     isOffice,
+    qc:         isOffice,
+    dispatch:   isOffice,
+    returns:    isOffice,
+    wages:      isFactory,
+    analytics:  true,
+    skujourney: true
+  };
+
+  Object.entries(access).forEach(([name, allowed]) => {
+    const el = document.getElementById('nav-' + name);
+    if (!el) return;
+    if (!allowed) {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '.3';
+      el.style.cursor = 'not-allowed';
+    } else {
+      el.style.pointerEvents = '';
+      el.style.opacity = '';
+      el.style.cursor = '';
+    }
+  });
+
+  if (isFactory) switchTab('production');
+  else switchTab('office');
+}
+
+// ── TABS ──
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name==='wages') { renderWages(); populateWagesKarigarFilter(); }
+  if (name==='office') { renderOfficeSummary(); renderOfficeLog(); updateStats(); }
+  if (name==='factory') renderFactoryLog();
+  if (name==='production') renderProductionLog();
+  if (name==='qc') { renderQCLog(); updateQCStats(); initQCSelects(); }
+  if (name==='dispatch') { renderDispatchLog(); updateDispatchStats(); initDispatchSelects(); document.getElementById('dispatch-date').value=new Date().toISOString().split('T')[0]; }
+  if (name==='returns') { renderReturnLog(); updateReturnStats(); initReturnSelects(); }
+  if (name==='analytics') renderAnalytics();
+  if (name==='skujourney') {
+    document.getElementById('sku-journey-input').value='';
+    document.getElementById('pj-scan-result').className='scan-result';
+    document.getElementById('pj-scan-result').textContent='';
+    document.getElementById('piece-journey-card').style.display='none';
+    setTimeout(()=>document.getElementById('sku-journey-input').focus(),100);
+  }
+}
+function toast(msg, dur=2800) {
+  const t = document.getElementById('toast'); t.textContent=msg; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none', dur);
+}
+
+// ── INIT FORM ──
+function initForm() {
+  const sk = document.getElementById('entry-sku');
+  sk.innerHTML = '<option value="">— Select SKU —</option>';
+  state.settings.skus.forEach(s => sk.innerHTML += `<option value="${s.name}">${s.name}</option>`);
+  const kr = document.getElementById('entry-karigar');
+  kr.innerHTML = '<option value="">— Select Karigar —</option>';
+  state.settings.karigars.forEach(k => kr.innerHTML += `<option value="${k}">${k}</option>`);
+  document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+}
+
+// ── BATCH CREATE ──
+function createBatch() {
+  const sku=document.getElementById('entry-sku').value;
+  const karigar=document.getElementById('entry-karigar').value;
+  const qty=parseInt(document.getElementById('entry-qty').value);
+  const date=document.getElementById('entry-date').value;
+  const notes=document.getElementById('entry-notes').value;
+  if (!sku||!karigar||!qty||qty<1) { toast('⚠ Please fill SKU, Worker and Quantity!'); return; }
+  const batchId='B'+Date.now().toString().slice(-6);
+  // Piece ID: BATCHID-SKU-0001 — BatchID prefix ensures GLOBALLY unique IDs always
+  const skuClean=sku.replace(/[^A-Z0-9]/gi,'-').toUpperCase();
+  const pieces=[];
+  for (let i=1;i<=qty;i++) {
+    pieces.push({
+      id:`${skuClean}-${batchId.slice(-4)}-${String(i).padStart(4,'0')}`,
+      status:'WIP',
+      wipDate: date,
+      finishedDate: null,
+      officeDate: null
+    });
+  }
+  state.batches.unshift({id:batchId,date,sku,karigar,qty,notes,status:'WIP',pieces});
+  saveState(); renderBatches(); updateStats();
+  toast(`✓ Batch ${batchId} — ${qty} barcodes generated!`);
+  document.getElementById('entry-sku').value='';
+  document.getElementById('entry-karigar').value='';
+  document.getElementById('entry-qty').value='';
+  document.getElementById('entry-notes').value='';
+  openQRModal(batchId);
+}
+
+// ── RENDER BATCHES ──
+function renderProductionLog() { renderBatches(); }
+
+function renderBatches(search='', dateFilter='') {
+  const tbody=document.getElementById('batches-tbody');
+  const empty=document.getElementById('batches-empty');
+  let list=state.batches;
+  if (search) { const q=search.toLowerCase(); list=list.filter(b=>b.sku.toLowerCase().includes(q)||b.karigar.toLowerCase().includes(q)||b.id.toLowerCase().includes(q)); }
+  if (dateFilter) list=list.filter(b=>b.date===dateFilter);
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=list.map(b=>{
+    const wip=b.pieces.filter(p=>p.status==='WIP').length;
+    const fin=b.pieces.filter(p=>p.status==='FINISHED').length;
+    const rec=b.pieces.filter(p=>p.status==='RECEIVED').length;
+    const bCls=b.status==='RECEIVED'?'badge-green':b.status==='FINISHED'?'badge-blue':'badge-yellow';
+    const bLbl=b.status==='RECEIVED'?'ALL RECEIVED':b.status==='FINISHED'?'FINISHED':'WIP';
+    return `<tr>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;">${b.id}</span></td>
+      <td style="font-size:12px;">${b.date}</td>
+      <td><strong>${b.sku}</strong></td>
+      <td>${b.karigar}</td>
+      <td><span class="badge badge-gold">${b.qty} pcs</span></td>
+      <td style="font-size:12px;white-space:nowrap;">
+        <span style="color:var(--amber);font-weight:700;">🟡${wip}</span>
+        <span style="color:var(--green);font-weight:700;margin:0 6px;">🟢${fin}</span>
+        <span style="color:var(--blue);font-weight:700;">🔵${rec}</span>
+      </td>
+      <td><span class="badge ${bCls}">${bLbl}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="openQRModal('${b.id}')">▦ Barcode</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBatch('${b.id}')">🗑 Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteBatch(id) {
+  if (!confirm(`Delete Batch ${id}? This cannot be undone.`)) return;
+  // Remove from logs too
+  state.factoryLog=state.factoryLog.filter(l=>l.batchId!==id);
+  state.officeLog=state.officeLog.filter(l=>l.batchId!==id);
+  state.batches=state.batches.filter(b=>b.id!==id);
+  saveState(); renderBatches(); updateStats(); toast('🗑 Batch deleted.');
+}
+
+// ── STATS ──
+function updateStats() {
+  const total=state.batches.length;
+  const totalPcs=state.batches.reduce((s,b)=>s+b.qty,0);
+  const wip=state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.status==='WIP').length,0);
+  const fin=state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.status==='FINISHED').length,0);
+  const rec=state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.status==='RECEIVED').length,0);
+  const disp=state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.status==='DISPATCHED'||p.status==='RETURNED').length,0);
+  // Production tab stats
+  document.getElementById('stat-batches').textContent=total;
+  document.getElementById('stat-total-pcs').textContent=totalPcs;
+  document.getElementById('stat-wip').textContent=wip;
+  document.getElementById('stat-finished').textContent=fin;
+  document.getElementById('stat-received').textContent=rec;
+  // Office tab production overview stats
+  const oTotal = document.getElementById('office-stat-total');
+  const oWip   = document.getElementById('office-stat-wip');
+  const oFin   = document.getElementById('office-stat-finished');
+  const oRec   = document.getElementById('office-stat-received');
+  const oDisp  = document.getElementById('office-stat-dispatched');
+  if (oTotal) oTotal.textContent = totalPcs;
+  if (oWip)   oWip.textContent   = wip;
+  if (oFin)   oFin.textContent   = fin;
+  if (oRec)   oRec.textContent   = rec;
+  if (oDisp)  oDisp.textContent  = disp;
+}
+
+// ── STAGE MODAL ──
+function openStageModal(stage) {
+  const labels={WIP:'🟡 WIP — In Production',FINISHED:'🟢 Finished Goods',RECEIVED:'🔵 Received in Office'};
+  const colors={WIP:'var(--amber)',FINISHED:'var(--green)',RECEIVED:'var(--blue)'};
+  const skuMap={};
+  state.batches.forEach(b=>{
+    const count=b.pieces.filter(p=>p.status===stage).length;
+    if (!count) return;
+    if (!skuMap[b.sku]) skuMap[b.sku]={total:0,karigars:{}};
+    skuMap[b.sku].total+=count;
+    skuMap[b.sku].karigars[b.karigar]=(skuMap[b.sku].karigars[b.karigar]||0)+count;
+  });
+  const rows=Object.entries(skuMap).sort((a,b)=>b[1].total-a[1].total);
+  const grand=rows.reduce((s,[,v])=>s+v.total,0);
+  document.getElementById('stage-modal-title').innerHTML=
+    labels[stage]+' &nbsp;<span style="font-size:13px;color:var(--ink-mute);font-weight:600;">Total: '+grand+' pcs</span>';
+  if (!rows.length) { document.getElementById('stage-modal-body').innerHTML='<div class="empty-state">No pieces found in this stage.</div>'; }
+  else {
+    const color=colors[stage];
+    const thS='background:var(--cream-2);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-mute);border-bottom:1px solid var(--line);';
+    const thR=thS+'text-align:right;';
+    const rowsHtml=rows.map(([sku,data])=>{
+      const kList=Object.entries(data.karigars).map(([k,v])=>
+        '<span style="font-size:11px;background:var(--cream-2);border-radius:6px;padding:2px 8px;margin:2px;display:inline-block;">'+k+': <strong>'+v+'</strong></span>'
+      ).join('');
+      return '<tr><td style="padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700;">'+sku+'</td><td style="padding:12px 14px;border-bottom:1px solid var(--line);">'+kList+'</td><td style="padding:12px 14px;border-bottom:1px solid var(--line);text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;font-size:16px;color:'+color+';">'+data.total+'</td></tr>';
+    }).join('');
+    document.getElementById('stage-modal-body').innerHTML=
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr>'+
+      '<th style="'+thS+'">SKU</th><th style="'+thS+'">Karigar-wise</th><th style="'+thR+'">Total Pcs</th></tr></thead><tbody>'+
+      rowsHtml+
+      '<tr style="background:var(--cream-2);"><td colspan="2" style="padding:12px 14px;font-weight:700;">TOTAL</td><td style="padding:12px 14px;text-align:right;font-family:JetBrains Mono,monospace;font-weight:800;font-size:18px;color:'+color+';">'+grand+'</td></tr></tbody></table>';
+  }
+  document.getElementById('stage-modal').classList.add('open');
+}
+
+// ── QR MODAL ──
+function openQRModal(batchId) {
+  const batch=state.batches.find(b=>b.id===batchId);
+  if (!batch) return;
+  document.getElementById('qr-modal-title').textContent=`Labels — ${batchId} | ${batch.sku} | ${batch.karigar} | ${batch.qty} pcs`;
+  const grid=document.getElementById('qr-grid');
+  grid.innerHTML='';
+  batch.pieces.forEach(piece=>{
+    const div=document.createElement('div');
+    div.className='qr-item';
+    // Single barcode: piece ID encodes SKU + Karigar + serial number
+    div.innerHTML=`
+      <div style="font-size:8px;font-weight:800;font-family:'Inter',sans-serif;letter-spacing:.05em;margin-bottom:1.5mm;text-align:center;color:#111;">${batch.sku}</div>
+      <svg id="bc-${piece.id}" style="width:56mm;display:block;"></svg>`;
+    grid.appendChild(div);
+    setTimeout(()=>{
+      try {
+        JsBarcode(`#bc-${piece.id}`, piece.id, {
+          format:'CODE128',
+          width:0.9,
+          height:38,
+          displayValue:true,
+          fontSize:7,
+          textMargin:2,
+          margin:2,
+          lineColor:'#000000',
+          background:'#ffffff'
+        });
+      } catch(e){}
+    },80);
+  });
+  document.getElementById('qr-modal').classList.add('open');
+}
+function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); }
+
+// ── FACTORY SCAN ──
+function handleFactoryScan(e) {
+  if (e.key!=='Enter') return;
+  const input=document.getElementById('factory-scan-input');
+  const result=document.getElementById('factory-scan-result');
+  const pieceId=input.value.trim().toUpperCase();
+  if (!pieceId) return;
+
+  let foundBatch=null, foundPiece=null;
+  for (const batch of state.batches) {
+    const p=batch.pieces.find(p=>p.id.toUpperCase()===pieceId);
+    if (p) { foundBatch=batch; foundPiece=p; break; }
+  }
+
+  if (!foundPiece) {
+    result.className='scan-result error';
+    result.textContent=`❌ Piece ID "${pieceId}" not found in any batch.`;
+    input.value=''; return;
+  }
+  // ⚠ DUPLICATE SCAN PROTECTION
+  if (foundPiece.status==='FINISHED') {
+    result.className='scan-result warn';
+    result.textContent=`⚠ DUPLICATE SCAN — ${pieceId} is already in Finished Goods! It will be counted only once.`;
+    input.value=''; return;
+  }
+  if (foundPiece.status==='RECEIVED') {
+    result.className='scan-result warn';
+    result.textContent=`⚠ ${pieceId} already received in office.`;
+    input.value=''; return;
+  }
+
+  foundPiece.status='FINISHED';
+  const dt=getDateTimeStr();
+  foundPiece.finishedDate = dt.date;
+  state.factoryLog.unshift({pieceId,batchId:foundBatch.id,sku:foundBatch.sku,karigar:foundBatch.karigar,date:dt.date,time:dt.time});
+  const allDone=foundBatch.pieces.every(p=>p.status==='FINISHED'||p.status==='RECEIVED');
+  if (allDone) foundBatch.status='FINISHED';
+  saveState(); renderFactoryLog(); updateStats();
+  result.className='scan-result success';
+  result.textContent=`✓ ${pieceId} — ${foundBatch.sku} | ${foundBatch.karigar} — Finished Goods! 🟢`;
+  input.value='';
+}
+
+// ── DELETE FACTORY SCAN ──
+function deleteFactoryScan(pieceId) {
+  if (!confirm(`Delete factory scan for Piece ${pieceId}? Status will revert to WIP.`)) return;
+  let foundBatch=null, foundPiece=null;
+  for (const batch of state.batches) {
+    const p=batch.pieces.find(p=>p.id===pieceId);
+    if (p) { foundBatch=batch; foundPiece=p; break; }
+  }
+  if (foundPiece && foundPiece.status==='FINISHED') {
+    foundPiece.status='WIP';
+    if (foundBatch.status==='FINISHED') foundBatch.status='WIP';
+  }
+  state.factoryLog=state.factoryLog.filter(l=>l.pieceId!==pieceId);
+  saveState(); renderFactoryLog(); updateStats();
+  toast(`🗑 ${pieceId} — status reverted to WIP.`);
+}
+
+// ── OFFICE SCAN ──
+function handleOfficeScan(e) {
+  if (e.key!=='Enter') return;
+  const input=document.getElementById('office-scan-input');
+  const result=document.getElementById('office-scan-result');
+  const pieceId=input.value.trim().toUpperCase();
+  if (!pieceId) return;
+
+  let foundBatch=null, foundPiece=null;
+  for (const batch of state.batches) {
+    const p=batch.pieces.find(p=>p.id.toUpperCase()===pieceId);
+    if (p) { foundBatch=batch; foundPiece=p; break; }
+  }
+
+  if (!foundPiece) { result.className='scan-result error'; result.textContent=`❌ "${pieceId}" not found.`; input.value=''; return; }
+  if (foundPiece.status==='WIP') { result.className='scan-result error'; result.textContent=`❌ ${pieceId} is still in WIP — please complete factory scan first!`; input.value=''; return; }
+  if (foundPiece.status==='RECEIVED') { result.className='scan-result warn'; result.textContent=`⚠ ${pieceId} already received in office.`; input.value=''; return; }
+
+  foundPiece.status='RECEIVED';
+  const dt=getDateTimeStr();
+  foundPiece.officeDate = dt.date;
+  state.officeLog.unshift({pieceId,batchId:foundBatch.id,sku:foundBatch.sku,karigar:foundBatch.karigar,date:dt.date,time:dt.time});
+  if (foundBatch.pieces.every(p=>p.status==='RECEIVED')) foundBatch.status='RECEIVED';
+  saveState(); renderOfficeSummary(); renderOfficeLog(); updateStats();
+  result.className='scan-result success';
+  result.textContent=`✓ ${pieceId} — ${foundBatch.sku} | ${foundBatch.karigar} — Received in Office! 🔵`;
+  input.value='';
+}
+
+// ── DELETE OFFICE SCAN ──
+function deleteOfficeScan(pieceId) {
+  if (!confirm(`Delete office receipt for Piece ${pieceId}? Status will revert to Finished Goods.`)) return;
+  let foundBatch=null, foundPiece=null;
+  for (const batch of state.batches) {
+    const p=batch.pieces.find(p=>p.id===pieceId);
+    if (p) { foundBatch=batch; foundPiece=p; break; }
+  }
+  if (foundPiece && foundPiece.status==='RECEIVED') {
+    foundPiece.status='FINISHED';
+    foundBatch.status='FINISHED';
+  }
+  state.officeLog=state.officeLog.filter(l=>l.pieceId!==pieceId);
+  saveState(); renderOfficeSummary(); renderOfficeLog(); updateStats();
+  toast(`🗑 ${pieceId} — status reverted to Finished Goods.`);
+}
+
+// ── DATE/TIME ──
+function getDateTimeStr() {
+  const now=new Date();
+  const y=now.getFullYear();
+  const m=String(now.getMonth()+1).padStart(2,'0');
+  const d=String(now.getDate()).padStart(2,'0');
+  const date=`${y}-${m}-${d}`;
+  const time=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  return {date,time};
+}
+
+// ── FILTER DROPDOWNS ──
+function populateFilterDropdowns() {
+  const skus=[...new Set(state.settings.skus.map(s=>s.name))];
+  const kars=[...new Set(state.settings.karigars)];
+  ['factory-filter-sku','office-filter-sku'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const v=el.value; el.innerHTML='<option value="">All SKUs</option>'+skus.map(s=>`<option value="${s}">${s}</option>`).join(''); el.value=v;
+  });
+  ['factory-filter-karigar','office-filter-karigar'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    const v=el.value; el.innerHTML='<option value="">All Karigars</option>'+kars.map(k=>`<option value="${k}">${k}</option>`).join(''); el.value=v;
+  });
+}
+
+// ── FACTORY LOG ──
+function renderFactoryLog() {
+  populateFilterDropdowns();
+  const tbody=document.getElementById('factory-log-tbody');
+  const empty=document.getElementById('factory-log-empty');
+  const fP=(document.getElementById('factory-filter-piece')?.value||'').toLowerCase();
+  const fB=(document.getElementById('factory-filter-batch')?.value||'').toLowerCase();
+  const fS=document.getElementById('factory-filter-sku')?.value||'';
+  const fK=document.getElementById('factory-filter-karigar')?.value||'';
+  const fD=document.getElementById('factory-filter-date')?.value||'';
+  let list=state.factoryLog;
+  if (fP) list=list.filter(l=>l.pieceId.toLowerCase().includes(fP));
+  if (fB) list=list.filter(l=>l.batchId.toLowerCase().includes(fB));
+  if (fS) list=list.filter(l=>l.sku===fS);
+  if (fK) list=list.filter(l=>l.karigar===fK);
+  if (fD) list=list.filter(l=>(l.date||'').includes(fD));
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=list.slice(0,300).map(l=>`<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;">${l.pieceId}</span></td>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;">${l.batchId}</span></td>
+    <td>${l.sku}</td><td>${l.karigar}</td>
+    <td style="font-size:12px;">${l.date||''}</td>
+    <td style="font-size:12px;font-family:'JetBrains Mono',monospace;">${l.time||''}</td>
+    <td><span class="badge badge-green">FINISHED</span></td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteFactoryScan('${l.pieceId}')">🗑 Delete</button></td>
+  </tr>`).join('');
+}
+
+function clearFactoryFilters() {
+  ['factory-filter-piece','factory-filter-batch','factory-filter-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['factory-filter-sku','factory-filter-karigar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderFactoryLog();
+}
+
+// ── OFFICE LOG ──
+function renderOfficeLog() {
+  populateFilterDropdowns();
+  const tbody=document.getElementById('office-log-tbody');
+  const empty=document.getElementById('office-log-empty');
+  if (!tbody) return;
+  const fP=(document.getElementById('office-filter-piece')?.value||'').toLowerCase();
+  const fB=(document.getElementById('office-filter-batch')?.value||'').toLowerCase();
+  const fS=document.getElementById('office-filter-sku')?.value||'';
+  const fK=document.getElementById('office-filter-karigar')?.value||'';
+  const fD=document.getElementById('office-filter-date')?.value||'';
+  let list=state.officeLog;
+  if (fP) list=list.filter(l=>l.pieceId.toLowerCase().includes(fP));
+  if (fB) list=list.filter(l=>l.batchId.toLowerCase().includes(fB));
+  if (fS) list=list.filter(l=>l.sku===fS);
+  if (fK) list=list.filter(l=>l.karigar===fK);
+  if (fD) list=list.filter(l=>(l.date||'').includes(fD));
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=list.slice(0,300).map(l=>`<tr>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;">${l.pieceId}</span></td>
+    <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;">${l.batchId}</span></td>
+    <td>${l.sku}</td><td>${l.karigar}</td>
+    <td style="font-size:12px;">${l.date||''}</td>
+    <td style="font-size:12px;font-family:'JetBrains Mono',monospace;">${l.time||''}</td>
+    <td><span class="badge badge-blue">RECEIVED</span></td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteOfficeScan('${l.pieceId}')">🗑 Delete</button></td>
+  </tr>`).join('');
+}
+
+function clearOfficeFilters() {
+  ['office-filter-piece','office-filter-batch','office-filter-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['office-filter-sku','office-filter-karigar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderOfficeLog();
+}
+
+// ── OFFICE SUMMARY ──
+function renderOfficeSummary() {
+  const tbody=document.getElementById('office-summary-tbody');
+  const empty=document.getElementById('office-summary-empty');
+  if (!state.batches.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=state.batches.map(b=>{
+    const wip=b.pieces.filter(p=>p.status==='WIP').length;
+    const fin=b.pieces.filter(p=>p.status==='FINISHED').length;
+    const rec=b.pieces.filter(p=>p.status==='RECEIVED').length;
+    // pending = finished goods not yet received
+    const pending=fin; // FINISHED pieces waiting in office
+    const isPending=pending>0;
+    let bCls,bLbl;
+    if (b.status==='RECEIVED') { bCls='badge-green'; bLbl='COMPLETE'; }
+    else if (fin>0||rec>0) { bCls='badge-blue'; bLbl='IN PROGRESS'; }
+    else { bCls='badge-yellow'; bLbl='WIP'; }
+    return `<tr class="${isPending?'pending-row':''}">
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;">${b.id}</span></td>
+      <td style="font-size:12px;">${b.date}</td>
+      <td>${b.sku}</td><td>${b.karigar}</td>
+      <td><strong>${b.qty}</strong></td>
+      <td style="color:var(--amber);font-weight:700;">${wip}</td>
+      <td style="color:var(--green);font-weight:700;">${fin}</td>
+      <td style="color:var(--blue);font-weight:700;">${rec}</td>
+      <td style="color:${pending>0?'var(--red)':'var(--ink-mute)'};font-weight:${pending>0?'700':'400'};">${pending>0?'⚠ '+pending+' pending':'-'}</td>
+      <td><span class="badge ${bCls}">${bLbl}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── WAGES ──
+function populateWagesKarigarFilter() {
+  const sel=document.getElementById('wages-karigar-filter');
+  if (!sel) return;
+  const v=sel.value;
+  sel.innerHTML='<option value="">All Karigars</option>'+state.settings.karigars.map(k=>`<option value="${k}">${k}</option>`).join('');
+  sel.value=v;
+}
+
+function renderWages() {
+  populateWagesKarigarFilter();
+  const tbody=document.getElementById('wages-tbody');
+  const empty=document.getElementById('wages-empty');
+  const filterKar=document.getElementById('wages-karigar-filter')?.value||'';
+  const dateFrom=document.getElementById('wages-date-from')?.value||'';
+  const dateTo=document.getElementById('wages-date-to')?.value||'';
+
+  // Build map: per karigar+sku, count pieces that have been factory-scanned (finishedDate set)
+  // Filter by finishedDate (factory scan date), not batch date
+  const map={};
+  state.batches.forEach(b=>{
+    if (filterKar && b.karigar!==filterKar) return;
+    b.pieces.forEach(p=>{
+      // Only count pieces that have been factory scanned (finishedDate set)
+      if (!p.finishedDate) return;
+      // Date range filter on finishedDate
+      if (dateFrom && p.finishedDate < dateFrom) return;
+      if (dateTo   && p.finishedDate > dateTo)   return;
+      const key=`${b.karigar}__${b.sku}`;
+      if (!map[key]) map[key]={karigar:b.karigar, sku:b.sku, qty:0, dates:[]};
+      map[key].qty++;
+      if (!map[key].dates.includes(p.finishedDate)) map[key].dates.push(p.finishedDate);
+    });
+  });
+
+  // Update header date range label
+  const labelEl=document.getElementById('wages-date-range-label');
+  if (labelEl) {
+    if (dateFrom || dateTo) {
+      labelEl.textContent=`Period: ${dateFrom||'Start'} → ${dateTo||'Today'}`;
+    } else {
+      labelEl.textContent='All dates (no filter applied)';
+    }
+  }
+
+  const rows=Object.values(map);
+  if (!rows.length) { tbody.innerHTML=''; empty.style.display='block'; document.getElementById('total-wages').textContent='₹0'; return; }
+  empty.style.display='none';
+  let total=0;
+  tbody.innerHTML=rows.map(r=>{
+    const skuObj=(state.settings.skus.find(s=>s.name===r.sku)||{rate:0,category:'',rateLabel:''});
+    const rate=skuObj.rate||0;
+    const category=skuObj.category||'—';
+    const rateLabel=skuObj.rateLabel||'Labour Wages';
+    const amt=r.qty*rate; total+=amt;
+    r.dates.sort();
+    const period=r.dates.length>1?`${r.dates[0]} → ${r.dates[r.dates.length-1]}`:r.dates[0]||'';
+    return `<tr>
+      <td><strong>${r.karigar}</strong></td>
+      <td><span class="badge badge-blue" style="font-size:10px;">${category}</span></td>
+      <td>${r.sku}</td>
+      <td style="font-size:12px;color:var(--ink-soft);">${rateLabel}</td>
+      <td><span class="badge badge-green">${r.qty} pcs</span></td>
+      <td>₹${rate}/pc</td>
+      <td><strong style="color:var(--gold);font-size:14px;">₹${amt.toLocaleString()}</strong></td>
+      <td style="font-size:11px;color:var(--ink-mute);">${period}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('total-wages').textContent='₹'+total.toLocaleString();
+}
+
+function exportWages() {
+  const dateFrom=document.getElementById('wages-date-from')?.value||'';
+  const dateTo=document.getElementById('wages-date-to')?.value||'';
+  const filterKar=document.getElementById('wages-karigar-filter')?.value||'';
+  const map={};
+  state.batches.forEach(b=>{
+    if (filterKar && b.karigar!==filterKar) return;
+    b.pieces.forEach(p=>{
+      if (!p.finishedDate) return;
+      if (dateFrom && p.finishedDate < dateFrom) return;
+      if (dateTo   && p.finishedDate > dateTo)   return;
+      const key=`${b.karigar}__${b.sku}`;
+      if (!map[key]) map[key]={karigar:b.karigar,sku:b.sku,qty:0};
+      map[key].qty++;
+    });
+  });
+  let csv='Karigar,Category,SKU,Rate Type,Finished Pieces,Rate/Pc,Total Amount\n';
+  Object.values(map).forEach(r=>{
+    const skuObj=(state.settings.skus.find(s=>s.name===r.sku)||{rate:0,category:'',rateLabel:''});
+    const rate=skuObj.rate||0;
+    const category=skuObj.category||'';
+    const rateLabel=skuObj.rateLabel||'Labour Wages';
+    csv+=`${r.karigar},${category},${r.sku},${rateLabel},${r.qty},${rate},${r.qty*rate}\n`;
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`wages_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+// Store base wages for recalc
+let _slipBase = { total:0, karigar:'', today:'', dateFrom:'', dateTo:'', rowsHtml:'' };
+
+function printWageSlip() {
+  const filterKar=document.getElementById('wages-karigar-filter')?.value||'';
+  if (!filterKar) { toast('⚠ Please select a karigar from the filter first!'); return; }
+  const dateFrom=document.getElementById('wages-date-from')?.value||'';
+  const dateTo=document.getElementById('wages-date-to')?.value||'';
+  const map={};
+  state.batches.forEach(b=>{
+    if (b.karigar!==filterKar) return;
+    b.pieces.forEach(p=>{
+      if (!p.finishedDate) return;
+      if (dateFrom && p.finishedDate < dateFrom) return;
+      if (dateTo   && p.finishedDate > dateTo)   return;
+      if (!map[b.sku]) map[b.sku]={qty:0};
+      map[b.sku].qty++;
+    });
+  });
+  const rows=Object.entries(map);
+  if (!rows.length) { toast('⚠ No finished pieces found for this karigar in selected period.'); return; }
+  let total=0;
+  const rowsHtml=rows.map(([sku,d])=>{
+    const skuObj=(state.settings.skus.find(s=>s.name===sku)||{rate:0,category:'',rateLabel:''});
+    const rate=skuObj.rate||0;
+    const category=skuObj.category||'—';
+    const rateLabel=skuObj.rateLabel||'Labour Wages';
+    const amt=d.qty*rate; total+=amt;
+    return `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;">${sku}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#888;font-size:12px;">${category}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#888;font-size:12px;">${rateLabel}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${d.qty}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">₹${rate}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:700;">₹${amt.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+  const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  // Store for recalc
+  _slipBase = { total, karigar:filterKar, today, dateFrom, dateTo, rowsHtml };
+  // Reset adjustment fields
+  document.getElementById('slip-meal-days').value='';
+  document.getElementById('slip-advances').value='';
+  document.getElementById('slip-loan').value='';
+  document.getElementById('slip-modal').classList.add('open');
+  renderSlipContent();
+}
+
+function recalcSlip() {
+  renderSlipContent();
+}
+
+function renderSlipContent() {
+  const {total, karigar, today, dateFrom, dateTo, rowsHtml} = _slipBase;
+  if (!karigar) return;
+
+  const mealDays = parseInt(document.getElementById('slip-meal-days').value)||0;
+  const advances = parseFloat(document.getElementById('slip-advances').value)||0;
+  const loan     = parseFloat(document.getElementById('slip-loan').value)||0;
+
+  const mealAmt  = mealDays * 100;
+  const grossTotal = total + mealAmt;           // wages + meal
+  const tds      = Math.round(grossTotal * 0.01); // 1% TDS on gross
+  const netPayable = grossTotal - tds - advances - loan;
+
+  // Summary rows HTML
+  const summaryRows = `
+    <tr style="background:#fafaf7;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#555;font-size:13px;">Total Wages</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;">₹${total.toLocaleString()}</td>
+    </tr>
+    ${mealDays>0?`<tr style="background:#f0f8f0;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#4a7a4a;font-size:13px;">Add: Meal (${mealDays} days × ₹100)</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#4a7a4a;">+ ₹${mealAmt.toLocaleString()}</td>
+    </tr>`:''}
+    <tr style="background:#f5f5f0;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#555;font-size:13px;">Gross Total</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;">₹${grossTotal.toLocaleString()}</td>
+    </tr>
+    <tr style="background:#fff5f5;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#a64a3a;font-size:13px;">Less: TDS @ 1%</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#a64a3a;">− ₹${tds.toLocaleString()}</td>
+    </tr>
+    ${advances>0?`<tr style="background:#fff5f5;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#a64a3a;font-size:13px;">Less: Advances</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#a64a3a;">− ₹${advances.toLocaleString()}</td>
+    </tr>`:''}
+    ${loan>0?`<tr style="background:#fff5f5;">
+      <td colspan="5" style="padding:8px 12px;text-align:right;color:#a64a3a;font-size:13px;">Less: Loan Deduction</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:#a64a3a;">− ₹${loan.toLocaleString()}</td>
+    </tr>`:''}
+    <tr style="background:#1a1510;color:white;">
+      <td colspan="5" style="padding:12px 12px;font-weight:700;font-size:14px;">NET PAYABLE</td>
+      <td style="padding:12px 12px;text-align:right;font-weight:800;font-size:17px;color:#b8935a;">₹${netPayable.toLocaleString()}</td>
+    </tr>`;
+
+  document.getElementById('slip-content').innerHTML=`
+    <div class="slip-header">
+      <div>
+        <div style="font-family:'Archivo Black','Inter',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;">TRINE<span style="color:var(--gold);">TRA</span></div>
+        <div style="font-size:11px;color:#666;margin-top:2px;">Factory Production Tracker</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;">WAGE SLIP</div>
+        <div style="font-size:11px;color:#666;margin-top:2px;">Date: ${today}</div>
+        ${(dateFrom||dateTo)?`<div style="font-size:11px;color:#666;margin-top:2px;">Period: ${dateFrom||'Start'} → ${dateTo||'Today'}</div>`:''}
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <span style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.1em;">Karigar Name</span><br>
+      <span style="font-size:18px;font-weight:700;">${karigar}</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+      <thead><tr style="background:#f5f5f0;">
+        <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">SKU</th>
+        <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">Category</th>
+        <th style="padding:8px 12px;text-align:left;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">Rate Type</th>
+        <th style="padding:8px 12px;text-align:center;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">Pcs</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">Rate</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;text-transform:uppercase;color:#888;border-bottom:1px solid #ddd;">Amount</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot>${summaryRows}</tfoot>
+    </table>
+    <div style="display:flex;justify-content:space-between;margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#888;">
+      <div>Karigar Signature: _____________________</div>
+      <div>Authorized By: _____________________</div>
+    </div>`;
+}
+
+// ── BACKUP / RESTORE ──
+function backupData() {
+  const backup={
+    data: state,
+    exportedAt: new Date().toISOString(),
+    version: 'v3'
+  };
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(backup,null,2));
+  a.download=`trinetra_factory_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  toast('✓ Backup downloaded!');
+}
+
+function restoreData(event) {
+  const file=event.target.files[0];
+  if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const parsed=JSON.parse(e.target.result);
+      const data=parsed.data||parsed; // support both wrapped and raw
+      if (!data.batches) { toast('❌ Invalid backup file!'); return; }
+      if (!confirm('Restoring will replace all existing data. Continue?')) return;
+      state={...state,...data};
+      saveState(); initForm(); renderBatches(); updateStats();
+      toast('✓ Data restored successfully!');
+    } catch(err) { toast('❌ File parse error: '+err.message); }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+// ── SETTINGS ──
+function _openSettingsOriginal_unused() {
+  renderSKUConfig(); renderKarigarConfig(); renderCheckerConfig(); renderDispatcherConfig();
+  document.getElementById('sheets-url').value=state.settings.sheetsUrl||'';
+  document.getElementById('set-factory-pass').value='';
+  document.getElementById('set-office-pass').value='';
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function renderSKUConfig() {
+  const inp = s => `style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);width:100%;"`;
+  // Header row
+  const header = `<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 90px 36px;gap:8px;margin-bottom:4px;padding:0 2px;">
+    <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">SKU Name</div>
+    <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">Product Category</div>
+    <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">Rate Label <span style="font-weight:400;text-transform:none;">(e.g. Stitching Wages)</span></div>
+    <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;">₹/pc</div>
+    <div></div>
+  </div>`;
+  const rows = state.settings.skus.map((s,i)=>`
+    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 90px 36px;gap:8px;margin-bottom:8px;">
+      <input value="${s.name||''}" placeholder="e.g. BB-S-AI" onchange="state.settings.skus[${i}].name=this.value" ${inp()} />
+      <input value="${s.category||''}" placeholder="e.g. Hip Seat" onchange="state.settings.skus[${i}].category=this.value" ${inp()} />
+      <input value="${s.rateLabel||''}" placeholder="e.g. Stitching Wages" onchange="state.settings.skus[${i}].rateLabel=this.value" ${inp()} />
+      <input type="number" value="${s.rate||0}" placeholder="0" onchange="state.settings.skus[${i}].rate=parseFloat(this.value)||0" ${inp()} />
+      <button class="btn btn-danger btn-sm" onclick="state.settings.skus.splice(${i},1);renderSKUConfig();">✕</button>
+    </div>`).join('');
+  document.getElementById('sku-config-rows').innerHTML = header + rows;
+}
+function addSKURow() { state.settings.skus.push({name:'',category:'',rateLabel:'',rate:0}); renderSKUConfig(); }
+
+function renderKarigarConfig() {
+  document.getElementById('karigar-config-rows').innerHTML=state.settings.karigars.map((k,i)=>`
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
+      <input value="${k}" placeholder="Karigar Name" onchange="state.settings.karigars[${i}]=this.value" style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);" />
+      <button class="btn btn-danger btn-sm" onclick="state.settings.karigars.splice(${i},1);renderKarigarConfig();">✕</button>
+    </div>`).join('');
+}
+function addKarigarRow() { state.settings.karigars.push(''); renderKarigarConfig(); }
+
+function renderCheckerConfig() {
+  if (!state.settings.checkers) state.settings.checkers = [];
+  document.getElementById('checker-config-rows').innerHTML = state.settings.checkers.map((c,i) => `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
+      <input value="${c}" placeholder="Checker Name" onchange="state.settings.checkers[${i}]=this.value"
+        style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);" />
+      <button class="btn btn-danger btn-sm" onclick="state.settings.checkers.splice(${i},1);renderCheckerConfig();">✕</button>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--ink-mute);">No checkers added yet. Click + Add Checker.</p>';
+}
+function addCheckerRow() {
+  if (!state.settings.checkers) state.settings.checkers = [];
+  state.settings.checkers.push(''); renderCheckerConfig();
+}
+
+function renderDispatcherConfig() {
+  if (!state.settings.dispatchers) state.settings.dispatchers = [];
+  document.getElementById('dispatcher-config-rows').innerHTML = state.settings.dispatchers.map((d,i) => `
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
+      <input value="${d}" placeholder="Dispatcher Name" onchange="state.settings.dispatchers[${i}]=this.value"
+        style="border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;background:var(--cream-2);color:var(--ink);" />
+      <button class="btn btn-danger btn-sm" onclick="state.settings.dispatchers.splice(${i},1);renderDispatcherConfig();">✕</button>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--ink-mute);">No dispatchers added yet.</p>';
+}
+function addDispatcherRow() {
+  if (!state.settings.dispatchers) state.settings.dispatchers = [];
+  state.settings.dispatchers.push(''); renderDispatcherConfig();
+}
+
+function saveSettings() {
+  const fp=document.getElementById('set-factory-pass').value.trim();
+  const op=document.getElementById('set-office-pass').value.trim();
+  if (fp) state.settings.factoryPass=fp;
+  if (op) state.settings.officePass=op;
+  state.settings.sheetsUrl=document.getElementById('sheets-url').value.trim();
+  saveState(); initForm(); closeSettings();
+  toast('✓ Settings saved!'+(fp||op?' Passwords updated.':''));
+}
+
+// ── INLINE ADD ──
+function showAddSKUInline() {
+  const d=document.getElementById('add-sku-inline');
+  d.style.display=d.style.display==='none'?'block':'none';
+  if (d.style.display==='block') document.getElementById('new-sku-name').focus();
+}
+function confirmAddSKU() {
+  const name=document.getElementById('new-sku-name').value.trim().toUpperCase();
+  const rate=parseFloat(document.getElementById('new-sku-rate').value)||0;
+  if (!name) { toast('⚠ Please enter SKU name!'); return; }
+  if (state.settings.skus.find(s=>s.name===name)) { toast('⚠ This SKU already exists!'); return; }
+  state.settings.skus.push({name,rate});
+  saveState(); initForm();
+  document.getElementById('new-sku-name').value='';
+  document.getElementById('new-sku-rate').value='';
+  document.getElementById('add-sku-inline').style.display='none';
+  document.getElementById('entry-sku').value=name;
+  toast(`✓ SKU "${name}" added successfully!`);
+}
+function showAddKarigarInline() {
+  const d=document.getElementById('add-karigar-inline');
+  d.style.display=d.style.display==='none'?'block':'none';
+  if (d.style.display==='block') document.getElementById('new-karigar-name').focus();
+}
+function confirmAddKarigar() {
+  const name=document.getElementById('new-karigar-name').value.trim();
+  if (!name) { toast('⚠ Please enter worker name!'); return; }
+  if (state.settings.karigars.includes(name)) { toast('⚠ Ye karigar pehle se hai!'); return; }
+  state.settings.karigars.push(name);
+  saveState(); initForm();
+  document.getElementById('new-karigar-name').value='';
+  document.getElementById('add-karigar-inline').style.display='none';
+  document.getElementById('entry-karigar').value=name;
+  toast(`✓ Worker "${name}" added successfully!`);
+}
+
+// ── SYNC ──
+async function syncToSheets() {
+  const url = state.settings.sheetsUrl || 'https://script.google.com/macros/s/AKfycby7imoyKq1FemMEwYnd_TlGLZuLr9zTIy7LhGrFNmBqipIKaaq1zVaLKaSLx93Zqr15/exec';
+  if (!url) { toast('⚠ Google Sheets URL set nahi hai! Settings me jao.'); openSettings(); return; }
+  // Save URL in settings if not already saved
+  if (!state.settings.sheetsUrl) { state.settings.sheetsUrl = url; saveState(); }
+  const syncBtn = document.querySelector('.sync-btn');
+  if (syncBtn) { syncBtn.textContent = '🔄 Syncing...'; syncBtn.disabled = true; }
+  toast('🔄 Google Sheets me sync ho raha hai...');
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({
+        batches:     state.batches,
+        factoryLog:  state.factoryLog,
+        officeLog:   state.officeLog,
+        qcLog:       state.qcLog,
+        dispatchLog: state.dispatchLog,
+        returnLog:   state.returnLog,
+        timestamp:   new Date().toISOString()
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    toast('✓ Synced to Google Sheets! Inventory Journey updated.', 3500);
+  } catch(e) {
+    toast('❌ Sync failed: ' + e.message);
+  } finally {
+    if (syncBtn) { syncBtn.textContent = '↑ Sync'; syncBtn.disabled = false; }
+  }
+}
+
+async function pullFromSheets() {
+  const url = state.settings.sheetsUrl || 'https://script.google.com/macros/s/AKfycby7imoyKq1FemMEwYnd_TlGLZuLr9zTIy7LhGrFNmBqipIKaaq1zVaLKaSLx93Zqr15/exec';
+  if (!url) { toast('⚠ Sheets URL set nahi hai! Settings me jao.'); openSettings(); return; }
+  const pullBtn = document.querySelector('.btn[onclick="pullFromSheets()"]');
+  if (pullBtn) { pullBtn.textContent = '🔄 Pulling...'; pullBtn.disabled = true; }
+  toast('🔄 Sheet se data aa raha hai...');
+  try {
+    const res = await fetch(url + '?action=pull', { method: 'GET' });
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || 'Unknown error');
+    // Merge sheet data into state
+    if (data.batches)     state.batches     = data.batches;
+    if (data.factoryLog)  state.factoryLog  = data.factoryLog;
+    if (data.officeLog)   state.officeLog   = data.officeLog;
+    if (data.qcLog)       state.qcLog       = data.qcLog;
+    if (data.dispatchLog) state.dispatchLog = data.dispatchLog;
+    if (data.returnLog)   state.returnLog   = data.returnLog;
+    localStorage.setItem('trinetra_factory_v5', JSON.stringify(state));
+    refreshAllUI();
+    toast('✅ Sheet se data aa gaya! Dashboard updated.', 3500);
+  } catch(e) {
+    toast('❌ Pull failed: ' + e.message);
+  } finally {
+    if (pullBtn) { pullBtn.textContent = '↓ Pull from Sheet'; pullBtn.disabled = false; }
+  }
+}
+function downloadAppsScript() {
+  const code = `// Inventory Journey Apps Script - copy this to Code.gs`;
+  const a=document.createElement('a');
+  a.href='data:text/javascript;charset=utf-8,'+encodeURIComponent(code);
+  a.download='trinetra_factory_appscript.js';
+  a.click();
+}
+
+
+// ── PIECE JOURNEY LOOKUP ──
+function lookupPieceJourney(pieceId) {
+  if (!pieceId) return;
+  const id = pieceId.trim().toUpperCase();
+  let foundBatch = null, foundPiece = null;
+  for (const batch of state.batches) {
+    const p = batch.pieces.find(p => p.id.toUpperCase() === id);
+    if (p) { foundBatch = batch; foundPiece = p; break; }
+  }
+  document.getElementById('journey-lookup-input').value = '';
+
+  if (!foundBatch) {
+    document.getElementById('journey-modal-title').textContent = 'Piece Not Found';
+    document.getElementById('journey-modal-body').innerHTML =
+      `<div style="background:var(--red-soft);border:1px solid var(--red);border-radius:8px;padding:16px;color:var(--red);font-weight:600;">❌ Piece ID "${id}" was not found in any batch.</div>`;
+    document.getElementById('journey-modal').classList.add('open');
+    return;
+  }
+
+  const statusColor = foundPiece.status==='RECEIVED'?'var(--blue)':foundPiece.status==='FINISHED'?'var(--green)':'var(--amber)';
+  const statusLabel = foundPiece.status==='RECEIVED'?'🔵 Received in Office':foundPiece.status==='FINISHED'?'🟢 Finished Goods':'🟡 WIP — In Production';
+
+  document.getElementById('journey-modal-title').textContent = 'Piece Journey — ' + foundPiece.id;
+  document.getElementById('journey-modal-body').innerHTML = `
+    <div style="background:var(--cream-2);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">SKU</div>
+          <div style="font-size:16px;font-weight:800;color:var(--ink);">${foundBatch.sku}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Karigar</div>
+          <div style="font-size:16px;font-weight:800;color:var(--ink);">${foundBatch.karigar}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Batch ID</div>
+          <div style="font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--ink-soft);">${foundBatch.id}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Current Status</div>
+          <div style="font-size:14px;font-weight:800;color:${statusColor};">${statusLabel}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:relative;padding-left:24px;">
+      <div style="position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--line);"></div>
+
+      <!-- WIP -->
+      <div style="position:relative;margin-bottom:20px;">
+        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--amber);border:2px solid white;box-shadow:0 0 0 2px var(--amber);"></div>
+        <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.08em;">WIP — Production Start</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:2px;">📅 ${foundPiece.wipDate || foundBatch.date || '—'}</div>
+        <div style="font-size:12px;color:var(--ink-mute);margin-top:2px;">Karigar: ${foundBatch.karigar}</div>
+      </div>
+
+      <!-- FINISHED -->
+      <div style="position:relative;margin-bottom:20px;">
+        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;background:${foundPiece.finishedDate?'var(--green)':'var(--line)'};border:2px solid white;box-shadow:0 0 0 2px ${foundPiece.finishedDate?'var(--green)':'var(--line)'};"></div>
+        <div style="font-size:11px;font-weight:700;color:${foundPiece.finishedDate?'var(--green)':'var(--ink-mute)'};text-transform:uppercase;letter-spacing:.08em;">Finished Goods</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:2px;">📅 ${foundPiece.finishedDate || '⏳ Pending'}</div>
+      </div>
+
+      <!-- RECEIVED -->
+      <div style="position:relative;margin-bottom:20px;">
+        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;background:${foundPiece.officeDate?'var(--blue)':'var(--line)'};border:2px solid white;box-shadow:0 0 0 2px ${foundPiece.officeDate?'var(--blue)':'var(--line)'};"></div>
+        <div style="font-size:11px;font-weight:700;color:${foundPiece.officeDate?'var(--blue)':'var(--ink-mute)'};text-transform:uppercase;letter-spacing:.08em;">Received in Office</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:2px;">📅 ${foundPiece.officeDate || '⏳ Pending'}</div>
+      </div>
+
+      <!-- QC -->
+      <div style="position:relative;">
+        <div style="position:absolute;left:-20px;top:2px;width:12px;height:12px;border-radius:50%;background:${foundPiece.qcDate?(foundPiece.qcResult==='PASS'?'var(--green)':'var(--red)'):'var(--line)'};border:2px solid white;box-shadow:0 0 0 2px ${foundPiece.qcDate?(foundPiece.qcResult==='PASS'?'var(--green)':'var(--red)'):'var(--line)'};"></div>
+        <div style="font-size:11px;font-weight:700;color:${foundPiece.qcDate?(foundPiece.qcResult==='PASS'?'var(--green)':'var(--red)'):'var(--ink-mute)'};text-transform:uppercase;letter-spacing:.08em;">Quality Check</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-top:2px;">📅 ${foundPiece.qcDate || '⏳ Pending'}</div>
+        ${foundPiece.qcChecker ? `<div style="font-size:12px;color:var(--ink-mute);margin-top:2px;">Checker: <strong>${foundPiece.qcChecker}</strong></div>` : ''}
+      </div>
+    </div>`;
+
+  document.getElementById('journey-modal').classList.add('open');
+}
+
+// ── DISPATCH ──
+let dispatchScannedPiece = null, dispatchScannedBatch = null;
+
+// Session state
+let dispatchSession = { active: false, platform: '', dispatcher: '', date: '', count: 0 };
+
+function initDispatchSelects() {
+  const sel = document.getElementById('dispatch-dispatcher');
+  const v = sel.value;
+  sel.innerHTML = '<option value="">— Select —</option>' + (state.settings.dispatchers||[]).map(d=>`<option value="${d}">${d}</option>`).join('');
+  sel.value = v;
+}
+
+function updateSessionInfo() {
+  // Update session live if already active
+  if (dispatchSession.active) {
+    dispatchSession.platform = document.getElementById('dispatch-platform').value;
+    dispatchSession.dispatcher = document.getElementById('dispatch-dispatcher').value;
+    dispatchSession.date = document.getElementById('dispatch-date').value;
+  }
+}
+
+function startDispatchSession() {
+  const platform = document.getElementById('dispatch-platform').value;
+  const dispatcher = document.getElementById('dispatch-dispatcher').value;
+  const date = document.getElementById('dispatch-date').value;
+  if (!platform || !dispatcher || !date) { toast('⚠ Please fill Platform, Dispatcher and Date!'); return; }
+  dispatchSession = { active: true, platform, dispatcher, date, count: 0 };
+  document.getElementById('dispatch-scan-card').style.display = 'block';
+  document.getElementById('dispatch-session-badge').style.display = 'block';
+  document.getElementById('dispatch-start-btn').textContent = '✓ Active';
+  document.getElementById('dispatch-start-btn').style.background = 'var(--green)';
+  document.getElementById('dispatch-count-bar').style.display = 'block';
+  document.getElementById('dispatch-scan-input').focus();
+  toast(`✓ Session started — ${platform} | ${dispatcher}`);
+}
+
+function endDispatchSession() {
+  if (!confirm(`End dispatch session? ${dispatchSession.count} pieces have been dispatched.`)) return;
+  dispatchSession = { active: false, platform: '', dispatcher: '', date: '', count: 0 };
+  document.getElementById('dispatch-scan-card').style.display = 'none';
+  document.getElementById('dispatch-session-badge').style.display = 'none';
+  document.getElementById('dispatch-start-btn').textContent = '▶ Start';
+  document.getElementById('dispatch-start-btn').style.background = '';
+  document.getElementById('dispatch-count-bar').style.display = 'none';
+  clearDispatchRow();
+  toast('Session ended.');
+}
+
+function handleDispatchPieceScan() {
+  const input = document.getElementById('dispatch-scan-input');
+  const resultEl = document.getElementById('dispatch-piece-result');
+  const pieceId = input.value.trim().toUpperCase();
+  if (!pieceId) return;
+  let fb = null, fp = null;
+  for (const b of state.batches) { const p = b.pieces.find(p => p.id.toUpperCase() === pieceId); if (p) { fb=b; fp=p; break; } }
+  if (!fp) { resultEl.style.color='var(--red)'; resultEl.textContent=`❌ Not found`; return; }
+  if (fp.status !== 'RECEIVED') { resultEl.style.color='var(--red)'; resultEl.textContent=`❌ Status: ${fp.status}`; return; }
+  if (!fp.qcDate) { resultEl.style.color='var(--red)'; resultEl.textContent=`❌ QC not completed`; return; }
+  if (fp.dispatchDate) { resultEl.style.color='var(--amber)'; resultEl.textContent=`⚠ Already dispatched`; input.value=''; return; }
+  dispatchScannedPiece = fp; dispatchScannedBatch = fb;
+  resultEl.style.color='var(--green)';
+  resultEl.textContent=`✓ ${fb.sku} | ${fb.karigar}`;
+  document.getElementById('dispatch-order-id').focus();
+}
+
+function submitDispatch() {
+  if (!dispatchScannedPiece) { document.getElementById('dispatch-scan-result').textContent='⚠ Please scan a piece first!'; return; }
+  const orderId = document.getElementById('dispatch-order-id').value.trim();
+  const awb = document.getElementById('dispatch-awb').value.trim();
+  if (!orderId) { document.getElementById('dispatch-scan-result').textContent='⚠ Please enter Order ID!'; document.getElementById('dispatch-order-id').focus(); return; }
+  if (!awb) { document.getElementById('dispatch-scan-result').textContent='⚠ Please enter AWB number!'; document.getElementById('dispatch-awb').focus(); return; }
+  const dt = getDateTimeStr();
+  state.dispatchLog.unshift({
+    id:'D'+Date.now().toString().slice(-7),
+    pieceId: dispatchScannedPiece.id,
+    batchId: dispatchScannedBatch.id,
+    sku: dispatchScannedBatch.sku,
+    karigar: dispatchScannedBatch.karigar,
+    orderId, awb,
+    platform: dispatchSession.platform,
+    dispatcher: dispatchSession.dispatcher,
+    date: dispatchSession.date,
+    time: dt.time
+  });
+  dispatchScannedPiece.dispatchDate = dispatchSession.date;
+  dispatchScannedPiece.dispatchOrderId = orderId;
+  dispatchScannedPiece.dispatchAWB = awb;
+  dispatchScannedPiece.dispatcher = dispatchSession.dispatcher;
+  dispatchScannedPiece.dispatchPlatform = dispatchSession.platform;
+  dispatchScannedPiece.status = 'DISPATCHED';
+  dispatchSession.count++;
+  document.getElementById('dispatch-count-bar').textContent = `✓ ${dispatchSession.count} pieces dispatched — ${dispatchSession.platform} | ${dispatchSession.dispatcher}`;
+  saveState(); renderDispatchLog(); updateDispatchStats(); updateStats();
+  clearDispatchRow();
+  toast(`🚀 ${dispatchScannedPiece.id} → ${orderId} | AWB: ${awb}`);
+}
+
+function clearDispatchRow() {
+  dispatchScannedPiece = null; dispatchScannedBatch = null;
+  document.getElementById('dispatch-scan-input').value = '';
+  document.getElementById('dispatch-order-id').value = '';
+  document.getElementById('dispatch-awb').value = '';
+  document.getElementById('dispatch-piece-result').textContent = '';
+  document.getElementById('dispatch-scan-result').textContent = '';
+  document.getElementById('dispatch-scan-input').focus();
+}
+
+function resetDispatchForm() { clearDispatchRow(); }
+
+function updateDispatchStats() {
+  const total = state.dispatchLog.length;
+  const today = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const todayCount = state.dispatchLog.filter(d => d.date === new Date().toISOString().split('T')[0]).length;
+  const qcDone = state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.qcDate&&!p.dispatchDate).length,0);
+  const t=document.getElementById('stat-dispatch-total'); if(t) t.textContent=total;
+  const td=document.getElementById('stat-dispatch-today'); if(td) td.textContent=todayCount;
+  const pd=document.getElementById('stat-dispatch-pending'); if(pd) pd.textContent=qcDone;
+}
+
+
+function deleteDispatchLog(id) {
+  if (!confirm('Delete this dispatch entry?')) return;
+  const log = state.dispatchLog.find(d=>d.id===id);
+  if (log) { for (const b of state.batches) { const p=b.pieces.find(p=>p.id===log.pieceId); if(p){delete p.dispatchDate;delete p.dispatchOrderId;delete p.dispatcher;p.status='RECEIVED';break;} } }
+  state.dispatchLog = state.dispatchLog.filter(d=>d.id!==id);
+  saveState(); renderDispatchLog(); updateDispatchStats(); updateStats(); toast('🗑 Dispatch deleted.');
+}
+
+function showAddDispatcherInline() {
+  const d=document.getElementById('add-dispatcher-inline'); d.style.display=d.style.display==='none'?'block':'none';
+  if(d.style.display==='block') document.getElementById('new-dispatcher-name').focus();
+}
+function confirmAddDispatcher() {
+  const name=document.getElementById('new-dispatcher-name').value.trim();
+  if(!name){toast('⚠ Please enter a name!');return;}
+  if(!state.settings.dispatchers) state.settings.dispatchers=[];
+  if(state.settings.dispatchers.includes(name)){toast('⚠ Already exists!');return;}
+  state.settings.dispatchers.push(name); saveState(); initDispatchSelects();
+  document.getElementById('new-dispatcher-name').value='';
+  document.getElementById('add-dispatcher-inline').style.display='none';
+  document.getElementById('dispatch-dispatcher').value=name;
+  toast(`✓ "${name}" added!`);
+}
+
+// ── RETURNS ──
+let returnScannedPiece = null, returnScannedBatch = null;
+
+function handleReturnScan(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('return-scan-input');
+  const result = document.getElementById('return-scan-result');
+  const pieceId = input.value.trim().toUpperCase();
+  if (!pieceId) return;
+  let fb=null, fp=null;
+  for (const b of state.batches) { const p=b.pieces.find(p=>p.id.toUpperCase()===pieceId); if(p){fb=b;fp=p;break;} }
+  if (!fp) { result.className='scan-result error'; result.textContent=`❌ "${pieceId}" not found.`; input.value=''; return; }
+  if (!fp.dispatchDate) { result.className='scan-result error'; result.textContent=`❌ "${pieceId}" has not been dispatched — returns are only for dispatched pieces!`; input.value=''; return; }
+  if (fp.returnDate) { result.className='scan-result warn'; result.textContent=`⚠ "${pieceId}" already returned on ${fp.returnDate}.`; input.value=''; return; }
+  returnScannedPiece=fp; returnScannedBatch=fb;
+  result.className='scan-result success'; result.textContent=`✓ ${pieceId} — ${fb.sku} | Order: ${fp.dispatchOrderId||'—'}`;
+  document.getElementById('return-piece-info').textContent=`Piece: ${pieceId}  |  SKU: ${fb.sku}  |  Karigar: ${fb.karigar}  |  Order: ${fp.dispatchOrderId||'—'}`;
+  document.getElementById('return-form-wrap').style.display='block';
+  initReturnSelects(); input.value='';
+}
+
+function initReturnSelects() {
+  const sel=document.getElementById('return-checker'); const v=sel.value;
+  sel.innerHTML='<option value="">— Select Checker —</option>'+(state.settings.checkers||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value=v;
+}
+
+function submitReturn(qcResult) {
+  if (!returnScannedPiece) { toast('⚠ Please scan a piece first!'); return; }
+  const reason=document.getElementById('return-reason').value;
+  const checker=document.getElementById('return-checker').value;
+  const notes=document.getElementById('return-notes').value;
+  if (!reason||!checker) { toast('⚠ Please select Reason and Checker!'); return; }
+  const dt=getDateTimeStr();
+  state.returnLog.unshift({ id:'R'+Date.now().toString().slice(-7), pieceId:returnScannedPiece.id, batchId:returnScannedBatch.id, sku:returnScannedBatch.sku, karigar:returnScannedBatch.karigar, checker, reason, qcResult, notes, date:dt.date, time:dt.time, orderId:returnScannedPiece.dispatchOrderId||'' });
+  returnScannedPiece.returnDate=dt.date; returnScannedPiece.returnReason=reason; returnScannedPiece.returnQC=qcResult; returnScannedPiece.returnChecker=checker; returnScannedPiece.status='RETURNED';
+  saveState(); renderReturnLog(); updateReturnStats();
+  toast(`↩️ Return saved — ${returnScannedPiece.id} | QC: ${qcResult==='PASS'?'✅ Refund':'❌ Deduct'}`);
+  resetReturnForm();
+}
+
+function resetReturnForm() {
+  returnScannedPiece=null; returnScannedBatch=null;
+  document.getElementById('return-scan-input').value='';
+  document.getElementById('return-scan-result').className='scan-result';
+  document.getElementById('return-scan-result').textContent='';
+  document.getElementById('return-form-wrap').style.display='none';
+  document.getElementById('return-reason').value='';
+  document.getElementById('return-checker').value='';
+  document.getElementById('return-notes').value='';
+  document.getElementById('return-scan-input').focus();
+}
+
+function updateReturnStats() {
+  const total=state.returnLog.length;
+  const pass=state.returnLog.filter(r=>r.qcResult==='PASS').length;
+  const fail=state.returnLog.filter(r=>r.qcResult==='FAIL').length;
+  const pending=state.batches.reduce((s,b)=>s+b.pieces.filter(p=>p.status==='RETURNED'&&!p.returnQC).length,0);
+  const t=document.getElementById('stat-ret-total');if(t)t.textContent=total;
+  const p=document.getElementById('stat-ret-pass');if(p)p.textContent=pass;
+  const f=document.getElementById('stat-ret-fail');if(f)f.textContent=fail;
+  const pd=document.getElementById('stat-ret-pending');if(pd)pd.textContent=pending;
+}
+
+function renderReturnLog() {
+  const tbody=document.getElementById('return-log-tbody'); const empty=document.getElementById('return-log-empty');
+  if(!tbody)return;
+  const q=(document.getElementById('rlog-search')?.value||'').toLowerCase();
+  let list=state.returnLog;
+  if(q) list=list.filter(l=>l.sku.toLowerCase().includes(q)||l.pieceId.toLowerCase().includes(q)||l.reason.toLowerCase().includes(q)||l.karigar.toLowerCase().includes(q));
+  if(!list.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=list.map(l=>`<tr>
+    <td style="font-size:12px;">${l.date}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;">${l.pieceId}</td>
+    <td><strong>${l.sku}</strong></td><td>${l.karigar}</td><td>${l.checker}</td>
+    <td style="font-size:12px;">${l.reason}</td>
+    <td><span class="badge ${l.qcResult==='PASS'?'badge-green':'badge-red'}">${l.qcResult==='PASS'?'✅ Refund':'❌ Deduct'}</span></td>
+    <td style="font-size:12px;color:var(--ink-mute);">${l.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteReturnLog('${l.id}')">🗑</button></td>
+  </tr>`).join('');
+}
+
+function deleteReturnLog(id) {
+  if(!confirm('Delete this return entry?'))return;
+  const log=state.returnLog.find(r=>r.id===id);
+  if(log){for(const b of state.batches){const p=b.pieces.find(p=>p.id===log.pieceId);if(p){delete p.returnDate;delete p.returnReason;delete p.returnQC;delete p.returnChecker;p.status='DISPATCHED';break;}}}
+  state.returnLog=state.returnLog.filter(r=>r.id!==id);
+  saveState();renderReturnLog();updateReturnStats();toast('🗑 Return deleted.');
+}
+
+function showAddCheckerInline2(){const d=document.getElementById('add-checker-inline2');d.style.display=d.style.display==='none'?'block':'none';if(d.style.display==='block')document.getElementById('new-checker-name2').focus();}
+function confirmAddChecker2(){
+  const name=document.getElementById('new-checker-name2').value.trim();
+  if(!name){toast('⚠ Please enter a name!');return;}
+  if(!state.settings.checkers)state.settings.checkers=[];
+  if(state.settings.checkers.includes(name)){toast('⚠ Already exists!');return;}
+  state.settings.checkers.push(name);saveState();initReturnSelects();
+  document.getElementById('new-checker-name2').value='';
+  document.getElementById('add-checker-inline2').style.display='none';
+  document.getElementById('return-checker').value=name;
+  toast(`✓ "${name}" added!`);
+}
+
+// ── ANALYTICS ──
+function renderAnalytics() {
+  const totalPcs = state.batches.reduce((s,b)=>s+b.qty,0);
+  const dispatched = state.dispatchLog.length;
+  const returns = state.returnLog.length;
+  const returnRate = dispatched>0 ? ((returns/dispatched)*100).toFixed(1)+'%' : '0%';
+  const s=id=>document.getElementById(id);
+  if(s('an-total'))s('an-total').textContent=totalPcs;
+  if(s('an-dispatched'))s('an-dispatched').textContent=dispatched;
+  if(s('an-returns'))s('an-returns').textContent=returns;
+  if(s('an-return-rate'))s('an-return-rate').textContent=returnRate;
+
+  // Karigar performance
+  const karigarMap={};
+  state.batches.forEach(b=>{
+    if(!karigarMap[b.karigar])karigarMap[b.karigar]={produced:0,dispatched:0,returns:0};
+    karigarMap[b.karigar].produced+=b.qty;
+  });
+  state.dispatchLog.forEach(d=>{ if(karigarMap[d.karigar]) karigarMap[d.karigar].dispatched++; });
+  state.returnLog.forEach(r=>{ if(karigarMap[r.karigar]) karigarMap[r.karigar].returns++; });
+  const kRows=Object.entries(karigarMap).sort((a,b)=>b[1].produced-a[1].produced);
+  const kBody=document.getElementById('an-karigar-tbody');
+  const kEmpty=document.getElementById('an-karigar-empty');
+  if(!kRows.length){if(kBody)kBody.innerHTML='';if(kEmpty)kEmpty.style.display='block';}
+  else {
+    if(kEmpty)kEmpty.style.display='none';
+    if(kBody)kBody.innerHTML=kRows.map(([name,d])=>{
+      const rate=d.dispatched>0?((d.returns/d.dispatched)*100).toFixed(1):0;
+      const rating=rate<=2?'⭐⭐⭐ Excellent':rate<=5?'⭐⭐ Good':rate<=10?'⭐ Average':'⚠ Needs Attention';
+      const rColor=rate<=2?'var(--green)':rate<=5?'var(--amber)':'var(--red)';
+      return `<tr><td><strong>${name}</strong></td><td>${d.produced}</td><td>${d.dispatched}</td>
+        <td style="color:var(--red);font-weight:700;">${d.returns}</td>
+        <td style="font-weight:700;color:${rColor};">${rate}%</td>
+        <td>${rating}</td></tr>`;
+    }).join('');
+  }
+
+  // Checker performance
+  const checkerMap={};
+  state.qcLog.forEach(q=>{ if(!checkerMap[q.checker])checkerMap[q.checker]={checked:0,returns:0}; checkerMap[q.checker].checked++; });
+  state.returnLog.forEach(r=>{ if(checkerMap[r.checker])checkerMap[r.checker].returns++; });
+  const cRows=Object.entries(checkerMap).sort((a,b)=>b[1].checked-a[1].checked);
+  const cBody=document.getElementById('an-checker-tbody'); const cEmpty=document.getElementById('an-checker-empty');
+  if(!cRows.length){if(cBody)cBody.innerHTML='';if(cEmpty)cEmpty.style.display='block';}
+  else {
+    if(cEmpty)cEmpty.style.display='none';
+    if(cBody)cBody.innerHTML=cRows.map(([name,d])=>{
+      const rate=d.checked>0?((d.returns/d.checked)*100).toFixed(1):0;
+      const rating=rate<=2?'⭐⭐⭐ Excellent':rate<=5?'⭐⭐ Good':rate<=10?'⭐ Average':'⚠ Needs Attention';
+      const rColor=rate<=2?'var(--green)':rate<=5?'var(--amber)':'var(--red)';
+      return `<tr><td><strong>${name}</strong></td><td>${d.checked}</td><td style="color:var(--red);font-weight:700;">${d.returns}</td>
+        <td style="font-weight:700;color:${rColor};">${rate}%</td><td>${rating}</td></tr>`;
+    }).join('');
+  }
+
+  // Return reasons
+  const reasonMap={};
+  state.returnLog.forEach(r=>{ reasonMap[r.reason]=(reasonMap[r.reason]||0)+1; });
+  const rRows=Object.entries(reasonMap).sort((a,b)=>b[1]-a[1]);
+  const rBody=document.getElementById('an-reason-tbody'); const rEmpty=document.getElementById('an-reason-empty');
+  if(!rRows.length){if(rBody)rBody.innerHTML='';if(rEmpty)rEmpty.style.display='block';}
+  else {
+    if(rEmpty)rEmpty.style.display='none';
+    const total=state.returnLog.length;
+    if(rBody)rBody.innerHTML=rRows.map(([reason,count])=>`<tr>
+      <td>${reason}</td><td><strong>${count}</strong></td>
+      <td style="font-weight:700;">${((count/total)*100).toFixed(1)}%</td></tr>`).join('');
+  }
+
+  // SKU returns
+  const skuMap={};
+  state.dispatchLog.forEach(d=>{ if(!skuMap[d.sku])skuMap[d.sku]={dispatched:0,returns:0}; skuMap[d.sku].dispatched++; });
+  state.returnLog.forEach(r=>{ if(skuMap[r.sku])skuMap[r.sku].returns++; });
+  const sRows=Object.entries(skuMap).sort((a,b)=>b[1].dispatched-a[1].dispatched);
+  const sBody=document.getElementById('an-sku-tbody'); const sEmpty=document.getElementById('an-sku-empty');
+  if(!sRows.length){if(sBody)sBody.innerHTML='';if(sEmpty)sEmpty.style.display='block';}
+  else {
+    if(sEmpty)sEmpty.style.display='none';
+    if(sBody)sBody.innerHTML=sRows.map(([sku,d])=>{
+      const rate=d.dispatched>0?((d.returns/d.dispatched)*100).toFixed(1):0;
+      const rColor=rate<=2?'var(--green)':rate<=5?'var(--amber)':'var(--red)';
+      return `<tr><td><strong>${sku}</strong></td><td>${d.dispatched}</td>
+        <td style="color:var(--red);font-weight:700;">${d.returns}</td>
+        <td style="font-weight:700;color:${rColor};">${rate}%</td></tr>`;
+    }).join('');
+  }
+}
+
+// ── QC SCAN ──
+let qcScannedPiece = null;
+let qcScannedBatch = null;
+
+function handleQCScan(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('qc-scan-input');
+  const result = document.getElementById('qc-scan-result');
+  const pieceId = input.value.trim().toUpperCase();
+  if (!pieceId) return;
+
+  let foundBatch = null, foundPiece = null;
+  for (const batch of state.batches) {
+    const p = batch.pieces.find(p => p.id.toUpperCase() === pieceId);
+    if (p) { foundBatch = batch; foundPiece = p; break; }
+  }
+
+  if (!foundPiece) {
+    result.className = 'scan-result error';
+    result.textContent = `❌ "${pieceId}" not found.`;
+    document.getElementById('qc-form-wrap').style.display = 'none';
+    input.value = ''; return;
+  }
+  if (foundPiece.status !== 'RECEIVED') {
+    result.className = 'scan-result error';
+    result.textContent = `❌ This piece is currently "${foundPiece.status}" — please receive it in Office first!`;
+    document.getElementById('qc-form-wrap').style.display = 'none';
+    input.value = ''; return;
+  }
+  // Check already QC done
+  const alreadyQC = state.qcLog.find(q => q.pieceId === pieceId);
+  if (alreadyQC) {
+    result.className = 'scan-result warn';
+    result.textContent = `⚠ QC already completed for ${pieceId} — Result: ${alreadyQC.result} by ${alreadyQC.checker}`;
+    document.getElementById('qc-form-wrap').style.display = 'none';
+    input.value = ''; return;
+  }
+
+  qcScannedPiece = foundPiece;
+  qcScannedBatch = foundBatch;
+  result.className = 'scan-result success';
+  result.textContent = `✓ ${pieceId} — ${foundBatch.sku} | Karigar: ${foundBatch.karigar} — Ready for QC!`;
+  document.getElementById('qc-piece-info').textContent =
+    `Piece: ${pieceId}  |  SKU: ${foundBatch.sku}  |  Karigar: ${foundBatch.karigar}  |  Received: ${foundPiece.officeDate || '—'}`;
+  document.getElementById('qc-form-wrap').style.display = 'block';
+  initQCSelects();
+  document.getElementById('qc-checker').focus();
+  input.value = '';
+}
+
+function submitQC() {
+  if (!qcScannedPiece) { toast('⚠ Please scan a piece first!'); return; }
+  const checker = document.getElementById('qc-checker').value;
+  const checker2 = document.getElementById('qc-checker2').value;
+  const notes = document.getElementById('qc-notes').value;
+  if (!checker) { toast('⚠ Please select a Checker!'); return; }
+  const dt = getDateTimeStr();
+  const checkerDisplay = checker2 ? `${checker} + ${checker2}` : checker;
+  state.qcLog.unshift({
+    id: 'QC' + Date.now().toString().slice(-7),
+    pieceId: qcScannedPiece.id,
+    batchId: qcScannedBatch.id,
+    sku: qcScannedBatch.sku,
+    karigar: qcScannedBatch.karigar,
+    checker, checker2, checkerDisplay, notes,
+    date: dt.date, time: dt.time
+  });
+  qcScannedPiece.qcChecker = checkerDisplay;
+  qcScannedPiece.qcDate = dt.date;
+  saveState();
+  updateQCStats();
+  renderQCLog();
+  toast(`✅ QC Saved — ${qcScannedPiece.id} | ${checkerDisplay}`);
+  resetQCForm();
+}
+
+function resetQCForm() {
+  qcScannedPiece = null; qcScannedBatch = null;
+  document.getElementById('qc-scan-input').value = '';
+  document.getElementById('qc-scan-result').className = 'scan-result';
+  document.getElementById('qc-scan-result').textContent = '';
+  document.getElementById('qc-form-wrap').style.display = 'none';
+  document.getElementById('qc-checker').value = '';
+  document.getElementById('qc-checker2').value = '';
+  document.getElementById('qc-notes').value = '';
+  document.getElementById('qc-scan-input').focus();
+}
+
+function initQCSelects() {
+  ['qc-checker','qc-checker2'].forEach(id => {
+    const sel = document.getElementById(id); if (!sel) return;
+    const v = sel.value;
+    sel.innerHTML = (id==='qc-checker2' ? '<option value="">— None —</option>' : '<option value="">— Select Checker —</option>') +
+      (state.settings.checkers || []).map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = v;
+  });
+}
+
+function updateQCStats() {
+  const total = state.qcLog.length;
+  const receivedTotal = state.batches.reduce((s,b) => s + b.pieces.filter(p => p.status === 'RECEIVED').length, 0);
+  const pending = receivedTotal - total;
+  const t = document.getElementById('stat-qc-total'); if(t) t.textContent = total;
+  const p = document.getElementById('stat-qc-pending'); if(p) p.textContent = Math.max(0, pending);
+}
+
+
+
+function deleteQCLog(id) {
+  if (!confirm('Delete this QC entry?')) return;
+  const log = state.qcLog.find(q => q.id === id);
+  if (log) {
+    // Revert piece QC data
+    for (const batch of state.batches) {
+      const p = batch.pieces.find(p => p.id === log.pieceId);
+      if (p) { delete p.qcResult; delete p.qcChecker; delete p.qcDate; break; }
+    }
+  }
+  state.qcLog = state.qcLog.filter(q => q.id !== id);
+  saveState(); renderQCLog(); updateQCStats();
+  toast('🗑 QC entry deleted.');
+}
+
+// Checker inline add
+function showAddCheckerInline() {
+  const d = document.getElementById('add-checker-inline');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  if (d.style.display === 'block') document.getElementById('new-checker-name').focus();
+}
+function confirmAddChecker() {
+  const name = document.getElementById('new-checker-name').value.trim();
+  if (!name) { toast('⚠ Please enter checker name!'); return; }
+  if (!state.settings.checkers) state.settings.checkers = [];
+  if (state.settings.checkers.includes(name)) { toast('⚠ This checker already exists!'); return; }
+  state.settings.checkers.push(name);
+  saveState(); initQCSelects();
+  document.getElementById('new-checker-name').value = '';
+  document.getElementById('add-checker-inline').style.display = 'none';
+  document.getElementById('qc-checker').value = name;
+  toast(`✓ Checker "${name}" added successfully!`);
+}
+
+// ── QC LOG with date filter ──
+function renderQCLog() {
+  if (!state.qcLog) state.qcLog = [];
+  const tbody = document.getElementById('qc-log-tbody');
+  const empty = document.getElementById('qc-log-empty');
+  const q = (document.getElementById('qclog-search')?.value || '').toLowerCase();
+  const df = document.getElementById('qclog-date-from')?.value || '';
+  const dt = document.getElementById('qclog-date-to')?.value || '';
+  let list = state.qcLog;
+  if (q) list = list.filter(l => l.sku.toLowerCase().includes(q) || (l.checkerDisplay||l.checker).toLowerCase().includes(q) || l.pieceId.toLowerCase().includes(q) || l.karigar.toLowerCase().includes(q));
+  if (df) list = list.filter(l => l.date >= df);
+  if (dt) list = list.filter(l => l.date <= dt);
+  if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(l => `<tr>
+    <td style="font-size:12px;">${l.date}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;">${l.pieceId}</td>
+    <td><strong>${l.sku}</strong></td><td>${l.karigar}</td>
+    <td><span class="badge badge-green">${l.checkerDisplay||l.checker}</span></td>
+    <td style="font-size:12px;color:var(--ink-mute);">${l.notes||'—'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteQCLog('${l.id}')">🗑</button></td>
+  </tr>`).join('');
+}
+
+function exportQCExcel() {
+  const df = document.getElementById('qclog-date-from')?.value || '';
+  const dt = document.getElementById('qclog-date-to')?.value || '';
+  let list = state.qcLog || [];
+  if (df) list = list.filter(l => l.date >= df);
+  if (dt) list = list.filter(l => l.date <= dt);
+  let csv = 'Date,Time,Piece ID,SKU,Karigar,Checker,Notes\n';
+  list.forEach(function(l) { csv += '"' + l.date + '","' + (l.time||'') + '","' + l.pieceId + '","' + l.sku + '","' + l.karigar + '","' + (l.checkerDisplay||l.checker) + '","' + (l.notes||'') + '"\n'; });
+  downloadCSV(csv, `QC_Log_${df||'all'}_to_${dt||'all'}.csv`);
+}
+
+// ── DISPATCH LOG with date filter ──
+function renderDispatchLog() {
+  const tbody = document.getElementById('dispatch-log-tbody');
+  const empty = document.getElementById('dispatch-log-empty');
+  if (!tbody) return;
+  const q = (document.getElementById('dlog-search')?.value||'').toLowerCase();
+  const df = document.getElementById('dlog-date-from')?.value || '';
+  const dt = document.getElementById('dlog-date-to')?.value || '';
+  let list = state.dispatchLog;
+  if (q) list = list.filter(l => l.sku.toLowerCase().includes(q) || l.orderId.toLowerCase().includes(q) || l.pieceId.toLowerCase().includes(q) || (l.awb||'').toLowerCase().includes(q));
+  if (df) list = list.filter(l => l.date >= df);
+  if (dt) list = list.filter(l => l.date <= dt);
+  if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(l => `<tr>
+    <td style="font-size:12px;">${l.date}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;">${l.pieceId}</td>
+    <td><strong>${l.sku}</strong></td><td>${l.karigar}</td>
+    <td><span class="badge badge-gold">${l.platform||'—'}</span></td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--gold-dark);">${l.orderId}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:12px;">${l.awb||'—'}</td>
+    <td>${l.dispatcher}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteDispatchLog('${l.id}')">🗑</button></td>
+  </tr>`).join('');
+}
+
+function exportDispatchExcel() {
+  const df = document.getElementById('dlog-date-from')?.value || '';
+  const dt = document.getElementById('dlog-date-to')?.value || '';
+  let list = state.dispatchLog || [];
+  if (df) list = list.filter(l => l.date >= df);
+  if (dt) list = list.filter(l => l.date <= dt);
+  let csv = 'Date,Time,Piece ID,SKU,Karigar,Platform,Order ID,AWB,Dispatcher\n';
+  list.forEach(function(l) { csv += '"'+l.date+'","'+(l.time||'')+'","'+l.pieceId+'","'+l.sku+'","'+l.karigar+'","'+(l.platform||'')+'","'+l.orderId+'","'+(l.awb||'')+'","'+l.dispatcher+'"\n'; });
+  downloadCSV(csv, `Dispatch_Log_${df||'all'}_to_${dt||'all'}.csv`);
+}
+
+// ── SKU JOURNEY ──
+// ── SINGLE PIECE JOURNEY ──
+function lookupSinglePieceJourney(input) {
+  if (!input) return;
+  const pieceId = input.trim().toUpperCase();
+  const resultEl = document.getElementById('pj-scan-result');
+
+  let foundBatch = null, foundPiece = null;
+  for (const b of state.batches) {
+    const p = b.pieces.find(p => p.id.toUpperCase() === pieceId);
+    if (p) { foundBatch = b; foundPiece = p; break; }
+  }
+
+  if (!foundPiece) {
+    resultEl.className = 'scan-result error';
+    resultEl.textContent = `❌ "${pieceId}" was not found in any batch.`;
+    document.getElementById('piece-journey-card').style.display = 'none';
+    return;
+  }
+
+  resultEl.className = 'scan-result success';
+  resultEl.textContent = `✓ Piece mila — ${foundBatch.sku} | ${foundBatch.karigar}`;
+  document.getElementById('sku-journey-input').value = foundPiece.id;
+
+  // Fill header info
+  document.getElementById('pj-piece-id').textContent = foundPiece.id;
+  document.getElementById('pj-sku').textContent = foundBatch.sku;
+  document.getElementById('pj-karigar').textContent = foundBatch.karigar;
+  document.getElementById('pj-batch').textContent = foundBatch.id;
+
+  // Status badge
+  const statusMap = {
+    WIP: ['badge-yellow','🟡 WIP'],
+    FINISHED: ['badge-green','🟢 Finished Goods'],
+    RECEIVED: ['badge-blue','🔵 Received in Office'],
+    DISPATCHED: ['badge-gold','🚀 Dispatched'],
+    RETURNED: ['badge-red','↩️ Returned']
+  };
+  const [cls, lbl] = statusMap[foundPiece.status] || ['badge-yellow', foundPiece.status];
+  document.getElementById('pj-status-badge').innerHTML = `<span class="badge ${cls}" style="font-size:13px;padding:6px 16px;">${lbl}</span>`;
+
+  // Helper to set step
+  function setStep(stepId, dotId, isDone, isActive, detail) {
+    const titleEl = document.querySelector(`#${stepId} .pj-step-title`);
+    const dotEl = document.getElementById(dotId);
+    const detailEl = document.getElementById(`pj-detail-${stepId.replace('pj-step-','')}`);
+    if (isDone) { dotEl.className = 'pj-dot done'; if(titleEl) titleEl.className='pj-step-title done'; }
+    else if (isActive) { dotEl.className = 'pj-dot active'; }
+    else { dotEl.className = 'pj-dot'; }
+    if (detailEl) detailEl.textContent = detail;
+  }
+
+  // Step 1: WIP (always done — it was created)
+  setStep('pj-step-wip', 'pj-dot-wip', true, false,
+    `Batch ${foundBatch.id} mein create hua — ${foundPiece.wipDate || foundBatch.date}`);
+
+  // Step 2: Factory Scan
+  const factEntry = state.factoryLog.find(l => l.pieceId === foundPiece.id);
+  setStep('pj-step-finished', 'pj-dot-finished',
+    !!foundPiece.finishedDate, false,
+    foundPiece.finishedDate
+      ? `✓ ${foundPiece.finishedDate}${factEntry ? ' — '+factEntry.time : ''}`
+      : '⏳ Factory scan not done yet');
+
+  // Step 3: Office Received
+  const offEntry = state.officeLog.find(l => l.pieceId === foundPiece.id);
+  setStep('pj-step-office', 'pj-dot-office',
+    !!foundPiece.officeDate, false,
+    foundPiece.officeDate
+      ? `✓ ${foundPiece.officeDate}${offEntry ? ' — '+offEntry.time : ''}`
+      : '⏳ Not yet received in office');
+
+  // Step 4: QC
+  const qcEntry = state.qcLog.find(q => q.pieceId === foundPiece.id);
+  setStep('pj-step-qc', 'pj-dot-qc',
+    !!foundPiece.qcDate, false,
+    foundPiece.qcDate
+      ? `✓ ${foundPiece.qcDate} — by ${foundPiece.qcChecker || '—'}${qcEntry && qcEntry.notes ? ' | Notes: '+qcEntry.notes : ''}`
+      : '⏳ QC pending');
+
+  // Step 5: Dispatch
+  const dispEntry = state.dispatchLog.find(d => d.pieceId === foundPiece.id);
+  const isDispatched = foundPiece.status === 'DISPATCHED' || foundPiece.status === 'RETURNED';
+  const dispDotEl = document.getElementById('pj-dot-dispatch');
+  if (isDispatched) { dispDotEl.className = 'pj-dot dispatched'; document.querySelector('#pj-step-dispatch .pj-step-title').className='pj-step-title done'; }
+  else dispDotEl.className = 'pj-dot';
+  document.getElementById('pj-detail-dispatch').textContent = foundPiece.dispatchDate
+    ? `✓ ${foundPiece.dispatchDate} | Order: ${foundPiece.dispatchOrderId || '—'} | AWB: ${foundPiece.dispatchAWB || '—'} | Platform: ${foundPiece.dispatchPlatform || '—'} | By: ${foundPiece.dispatcher || (dispEntry && dispEntry.dispatcher) || '—'}`
+    : '⏳ Dispatch pending';
+
+  // Step 6: Return (show only if returned)
+  const returnStep = document.getElementById('pj-step-return');
+  if (foundPiece.status === 'RETURNED') {
+    returnStep.style.display = 'flex';
+    const retEntry = state.returnLog ? state.returnLog.find(r => r.pieceId === foundPiece.id) : null;
+    document.getElementById('pj-detail-return').textContent = retEntry
+      ? `${retEntry.date} | Reason: ${retEntry.reason || '—'} | Checker: ${retEntry.checker || '—'}`
+      : foundPiece.returnDate ? `${foundPiece.returnDate} | ${foundPiece.returnReason || '—'}` : '—';
+  } else {
+    returnStep.style.display = 'none';
+  }
+
+  document.getElementById('piece-journey-card').style.display = 'block';
+}
+
+// Keep old stub for any residual calls
+function lookupSKUJourney(sku) { lookupSinglePieceJourney(sku); }
+function populateSKUJourneySuggestions(val) { /* replaced by single piece scan */ }
+function filterSKUJourneyTable() {}
+function renderSKUJourneyTable() {}
+function exportSKUJourneyExcel() { toast('⚠ Export not available in single piece view — use the Analytics tab.'); }
+
+// ── CSV DOWNLOAD HELPER ──
+function downloadCSV(csv, filename) {
+  const BOM = '﻿'; // UTF-8 BOM for Excel
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  toast(`✓ ${filename} downloaded!`);
+}
+
+// ── PATCH openSettings to prefill Firebase fields ──
+const _origOpenSettings = typeof openSettings === 'function' ? openSettings : null;
+function openSettings() {
+  // call original if it exists (defined later in file — we'll patch post-load)
+  document.getElementById('settings-modal').classList.add('open');
+  // prefill all existing settings
+  document.getElementById('sheets-url').value = state.settings.sheetsUrl || '';
+  document.getElementById('set-factory-pass').value = '';
+  document.getElementById('set-office-pass').value = '';
+  renderSKUConfig();
+  renderKarigarConfig();
+  renderCheckerConfig();
+  renderDispatcherConfig();
+  // prefill Firebase
+  try {
+    const cfg = JSON.parse(localStorage.getItem('trinetra_fb_config') || '{}');
+    document.getElementById('fb-db-url').value = cfg.databaseURL || '';
+    document.getElementById('fb-api-key').value = cfg.apiKey || '';
+    document.getElementById('fb-project-id').value = cfg.projectId || '';
+    document.getElementById('fb-test-result').textContent = fbEnabled ? '☁ Currently connected' : '';
+    document.getElementById('fb-test-result').style.color = fbEnabled ? '#4a7a4a' : '';
+  } catch(e) {}
+  // prefill sheets URL if not set
+  if (!state.settings.sheetsUrl) {
+    state.settings.sheetsUrl = 'https://script.google.com/macros/s/AKfycby7imoyKq1FemMEwYnd_TlGLZuLr9zTIy7LhGrFNmBqipIKaaq1zVaLKaSLx93Zqr15/exec';
+    document.getElementById('sheets-url').value = state.settings.sheetsUrl;
+  }
+}
+
+// ── INIT ──
+loadState();
+initForm();
+renderBatches();
+updateStats();
+document.getElementById('login-screen').classList.remove('hidden');
+// Init Supabase after DOM ready
+setTimeout(() => {
+  initSupabase();
+  // Auto pull latest data from Supabase on load
+  setTimeout(() => pullFromSupabase(true), 1500);
+}, 500);
+</script>
+</body>
+</html>
